@@ -47,9 +47,32 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-# Firebase
+# Firebase local / debug
 .firebase/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+*.cache
+
+# Secrets and credentials — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.p12
+*.key
+*.crt
+*.mobileprovision
+**/key.properties
+**/*.jks
+**/*.keystore
+**/google-services.json
+**/GoogleService-Info.plist
+**/*-firebase-adminsdk-*.json
+**/serviceAccount*.json
+**/credentials.json
+**/secrets.json
+secrets/
+private/
 

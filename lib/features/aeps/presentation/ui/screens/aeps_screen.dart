@@ -141,7 +141,7 @@ class _AepsDetailsState extends State<AepsDetails> {
         : const <String, String>{};
     final bank = bankById(a.bank);
     final liveSummary = layout.aepsSummary == SummaryPlacement.liveSidePanel;
-    final popularCount = layout.isMobile || liveSummary ? 4 : 8;
+    final popularCount = layout.isMobile ? 4 : 8;
     final popular = banks.where((b) => b.popular).take(popularCount).toList();
     void review() => c.reviewAeps(
       mobile: mobile.text,
@@ -162,38 +162,63 @@ class _AepsDetailsState extends State<AepsDetails> {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: Material(
-                      color: a.service == s ? p.primary : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () => c.setService(s),
-                        child: Container(
-                          height: 58,
-                          alignment: Alignment.center,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                c.t(s),
-                                style: body(
-                                  13.5,
-                                  weight: FontWeight.w700,
-                                  color: a.service == s ? p.onPrimary : p.ink2,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(17),
+                        boxShadow: a.service == s
+                            ? const [
+                                BoxShadow(
+                                  color: Color(0xB3302D70),
+                                  blurRadius: 20,
+                                  spreadRadius: -10,
+                                  offset: Offset(0, 10),
                                 ),
-                                textAlign: TextAlign.center,
+                              ]
+                            : null,
+                      ),
+                      child: Material(
+                        color: a.service == s ? p.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(17),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(17),
+                          onTap: () => c.setService(s),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 58),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 6,
                               ),
-                              if (s != 'cw')
-                                Text(
-                                  c.t('to_confirm'),
-                                  style: body(
-                                    10.5,
-                                    color: a.service == s
-                                        ? p.onPrimary.withValues(alpha: 0.85)
-                                        : p.ink3,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    c.t(s),
+                                    style: body(
+                                      13.5,
+                                      weight: FontWeight.w600,
+                                      color: a.service == s
+                                          ? p.onPrimary
+                                          : p.ink2,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                ),
-                            ],
+                                  if (s != 'cw')
+                                    Text(
+                                      c.t('to_confirm'),
+                                      style: body(
+                                        10.5,
+                                        weight: FontWeight.w500,
+                                        color: a.service == s
+                                            ? p.onPrimary.withValues(
+                                                alpha: 0.85,
+                                              )
+                                            : p.ink3,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -260,12 +285,12 @@ class _AepsDetailsState extends State<AepsDetails> {
               decoration: BoxDecoration(
                 color: p.card,
                 borderRadius: BorderRadius.circular(99),
-                border: Border.all(color: p.line, width: 1.5),
+                boxShadow: cardShadow(),
               ),
               child: Row(
                 children: [
                   _idType(c, p, 'aadhaar', 'Aadhaar'),
-                  _idType(c, p, 'vid', 'VID'),
+                  _idType(c, p, 'vid', 'VID', assume: true),
                 ],
               ),
             ),
@@ -282,11 +307,12 @@ class _AepsDetailsState extends State<AepsDetails> {
               : TextInputAction.next,
           onSubmitted: layout.enterSubmits ? (_) => review() : null,
           obscure: !a.showId,
-          error: errors['aadhaar'],
-          help: errors.containsKey('aadhaar')
-              ? null
-              : '${c.t('aadhaar_h')}${a.idType == 'vid' ? ' · VID support subject to integration confirmation.' : ''}',
-          prefix: Icon(ApIcons.id, color: p.ink3),
+          invalid: errors.containsKey('aadhaar'),
+          padding: EdgeInsets.zero,
+          prefix: Padding(
+            padding: const EdgeInsets.only(left: 6),
+            child: Icon(ApIcons.id, color: p.ink3, size: 20),
+          ),
           suffix: IconButton(
             onPressed: c.toggleShowId,
             icon: Icon(a.showId ? ApIcons.eyeOff : ApIcons.eye),
@@ -309,84 +335,133 @@ class _AepsDetailsState extends State<AepsDetails> {
             }
           },
         ),
+        if (errors['aadhaar'] != null)
+          HelpText(errors['aadhaar']!, error: true)
+        else
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(ApIcons.lock, size: 13, color: p.ink2),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${c.t('aadhaar_h')}${a.idType == 'vid' ? ' · VID support subject to integration confirmation.' : ''}',
+                    style: body(12.5, color: p.ink2),
+                  ),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: 12),
         FieldLabel(c.t('bank')),
-        Material(
-          color: p.card,
-          borderRadius: BorderRadius.circular(20),
-          child: InkWell(
+        DecoratedBox(
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            onTap: c.openBankSheet,
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 66),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: errors.containsKey('bank') ? p.error : p.line,
-                  width: 2,
+            boxShadow: cardShadow(),
+          ),
+          child: Material(
+            color: p.card,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: c.openBankSheet,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 66),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
                 ),
-              ),
-              child: Row(
-                children: [
-                  if (bank != null)
-                    BankMono(bank)
-                  else
-                    Icon(ApIcons.bank, color: p.ink3),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      bank?.name ?? c.t('choose_bank'),
-                      style: body(
-                        16,
-                        weight: bank == null
-                            ? FontWeight.w400
-                            : FontWeight.w600,
-                        color: bank == null ? p.ink3 : p.ink,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: errors.containsKey('bank')
+                        ? p.error
+                        : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    if (bank != null)
+                      BankMono(bank)
+                    else
+                      Container(
+                        width: 36,
+                        height: 36,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: p.surface2,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(ApIcons.bank, size: 20, color: p.ink3),
+                      ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        bank?.name ?? c.t('choose_bank'),
+                        style: body(
+                          16,
+                          weight: bank == null
+                              ? FontWeight.w400
+                              : FontWeight.w700,
+                          color: bank == null ? p.ink3 : p.ink,
+                        ),
                       ),
                     ),
-                  ),
-                  Icon(ApIcons.chevD, color: p.ink2),
-                ],
+                    Icon(ApIcons.chevD, size: 20, color: p.ink2),
+                  ],
+                ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 8),
-        GridView.count(
-          crossAxisCount: popularCount > 4 ? 8 : 4,
+        GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 0.78,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            mainAxisExtent: 80,
+          ),
           children: [
             for (final b in popular)
-              Material(
-                color: p.card,
-                borderRadius: BorderRadius.circular(18),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(18),
-                  onTap: () => c.pickBank(b.id),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: a.bank == b.id ? p.primary : p.line,
-                        width: 2,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        BankMono(b, size: 30),
-                        const SizedBox(height: 4),
-                        Text(
-                          b.short,
-                          style: body(11, weight: FontWeight.w700),
-                          textAlign: TextAlign.center,
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: cardShadow(),
+                ),
+                child: Material(
+                  color: p.card,
+                  borderRadius: BorderRadius.circular(20),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () => c.pickBank(b.id),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: a.bank == b.id
+                              ? p.primary
+                              : Colors.transparent,
+                          width: 2,
                         ),
-                      ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          BankMono(b, size: 30),
+                          const SizedBox(height: 5),
+                          Text(
+                            b.short,
+                            style: body(11.5, weight: FontWeight.w600),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -599,24 +674,39 @@ class _AepsDetailsState extends State<AepsDetails> {
     child: Center(widthFactor: 1, child: child),
   );
 
-  Widget _idType(AppController c, ApPalette p, String id, String label) {
+  Widget _idType(
+    AppController c,
+    ApPalette p,
+    String id,
+    String label, {
+    bool assume = false,
+  }) {
     final on = c.aeps.idType == id;
     return InkWell(
       borderRadius: BorderRadius.circular(99),
       onTap: () => c.setIdType(id),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        constraints: const BoxConstraints(minHeight: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: on ? p.primarySoft : Colors.transparent,
           borderRadius: BorderRadius.circular(99),
         ),
-        child: Text(
-          label,
-          style: body(
-            12.5,
-            weight: FontWeight.w700,
-            color: on ? p.primary : p.ink2,
-          ),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: body(
+                12.5,
+                weight: FontWeight.w600,
+                color: on ? p.primary : p.ink2,
+              ),
+            ),
+            if (assume) ...[
+              const SizedBox(width: 4),
+              Transform.scale(scale: 0.85, child: const AssumeTag(label: '?')),
+            ],
+          ],
         ),
       ),
     );

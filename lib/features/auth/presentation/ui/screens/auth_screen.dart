@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import '../../../../../core/responsive/layout_service.dart';
 import '../../../../../core/theme/palette.dart';
 import '../../../../../core/widgets/app_widgets.dart';
-import '../../../../session/domain/entities/session_entities.dart';
 import '../../../../session/presentation/controllers/app_controller.dart';
 import '../../../../../core/theme/ap_icons.dart';
 
@@ -368,13 +367,6 @@ class _LoginScreenState extends State<LoginScreen> {
             label: Text(c.t('back')),
           ),
           Text(c.t('login_t'), style: display(24, color: p.ink)),
-          const SizedBox(height: 14),
-          _DemoHint(
-            text:
-                '${c.t('demo_login')}: ${DemoLogin.id} / ${DemoLogin.password}',
-            action: c.t('fill_demo'),
-            onAction: c.fillLogin,
-          ),
           const SizedBox(height: 16),
           ApTextField(
             label: c.t('agent_id'),
@@ -518,12 +510,6 @@ class _OtpScreenState extends State<OtpScreen> {
           Text(c.t('otp_t'), style: display(24, color: p.ink)),
           const SizedBox(height: 6),
           Text(c.t('otp_sent'), style: body(14, color: p.ink2)),
-          const SizedBox(height: 14),
-          _DemoHint(
-            text: '${c.t('otp_demo')}: ${DemoLogin.otp}',
-            action: c.both('Fill OTP', 'OTP भरें'),
-            onAction: c.fillOtp,
-          ),
           const SizedBox(height: 18),
           GestureDetector(
             onTap: () => focus.requestFocus(),
@@ -655,49 +641,6 @@ class _MiniHero extends StatelessWidget {
           const Wordmark(height: 36, onDark: true),
           const SizedBox(height: 12),
           Text(c.t('welcome_t'), style: display(22, color: Colors.white)),
-        ],
-      ),
-    );
-  }
-}
-
-class _DemoHint extends StatelessWidget {
-  const _DemoHint({
-    required this.text,
-    required this.action,
-    required this.onAction,
-  });
-  final String text;
-  final String action;
-  final VoidCallback onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = ap(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-      decoration: BoxDecoration(
-        color: p.accentSoft,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(ApIcons.info, color: p.accentText, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(text, style: body(13, color: p.ink)),
-              ),
-            ],
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(onPressed: onAction, child: Text(action)),
-          ),
         ],
       ),
     );

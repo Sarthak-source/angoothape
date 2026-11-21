@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "angoothape-d77f9",
     "public": "build/web",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [

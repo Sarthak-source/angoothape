@@ -800,8 +800,8 @@ class _ScenarioSheet extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Text(
             c.both(
-              'Demo login: AP100245 / Demo@123 / OTP 246810. Aadhaar is cleared when a transaction is submitted and is never stored.',
-              'डेमो: AP100245 / Demo@123 / OTP 246810। आधार सबमिट पर मिट जाता है और सेव नहीं होता।',
+              'Aadhaar is cleared when a transaction is submitted and is never stored.',
+              'आधार सबमिट पर मिट जाता है और सेव नहीं होता।',
             ),
             style: body(12, color: ap(context).ink2),
           ),

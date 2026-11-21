@@ -200,13 +200,6 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  void fillLogin() {
-    login.id = DemoLogin.id;
-    login.pw = DemoLogin.password;
-    login.err = '';
-    notifyListeners();
-  }
-
   void togglePw() {
     login.showPw = !login.showPw;
     notifyListeners();
@@ -226,12 +219,6 @@ class AppController extends ChangeNotifier {
       login.otpErr = t('err_otp');
       notifyListeners();
     }
-  }
-
-  void fillOtp() {
-    login.otp = DemoLogin.otp;
-    login.otpErr = '';
-    notifyListeners();
   }
 
   void resendOtp() {

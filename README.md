@@ -1,17 +1,29 @@
 # angoothape
 
-A new Flutter project.
+Retailer AEPS prototype (Flutter). Mock data only — no real money, Aadhaar, or biometric capture.
 
-## Getting Started
+## Demo login
 
-This project is a starting point for a Flutter application.
+Use these on the login and OTP screens. They are not shown in the app UI.
 
-A few resources to get you started if this is your first Flutter project:
+| Field | Value |
+| --- | --- |
+| Partner ID | `AP100245` |
+| Password | `Demo@123` |
+| OTP | `246810` |
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Run locally
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter pub get
+flutter run
+```
+
+## Web / Firebase Hosting
+
+```bash
+flutter build web --release
+firebase deploy --only hosting
+```
+
+Live: https://angoothape-d77f9.web.app
