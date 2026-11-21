@@ -414,10 +414,19 @@ class ApButton extends StatelessWidget {
 enum ApButtonKind { primary, accent, outline, soft, ghost }
 
 class Notice extends StatelessWidget {
-  const Notice({super.key, required this.tone, required this.child, this.icon});
+  const Notice({
+    super.key,
+    required this.tone,
+    required this.child,
+    this.icon,
+    this.title,
+    this.padding = const EdgeInsets.all(16),
+  });
   final NoticeTone tone;
   final Widget child;
   final IconData? icon;
+  final String? title;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
@@ -429,7 +438,7 @@ class Notice extends StatelessWidget {
       NoticeTone.ok => (p.successBg, p.success),
     };
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: padding,
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(22),
@@ -440,9 +449,21 @@ class Notice extends StatelessWidget {
           Icon(icon ?? ApIcons.info, color: fg, size: 22),
           const SizedBox(width: 12),
           Expanded(
-            child: DefaultTextStyle.merge(
-              style: body(14, color: p.ink),
-              child: child,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (title != null) ...[
+                  Text(
+                    title!,
+                    style: display(16, weight: FontWeight.w600, color: p.ink),
+                  ),
+                  const SizedBox(height: 2),
+                ],
+                DefaultTextStyle.merge(
+                  style: body(14, color: p.ink, height: 1.45),
+                  child: child,
+                ),
+              ],
             ),
           ),
         ],

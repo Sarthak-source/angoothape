@@ -22,7 +22,7 @@ class DeviceScreen extends StatelessWidget {
             ? [
                 'Windows PC पर स्कैनर निर्माता का RD Service इंस्टॉल करें।',
                 'स्कैनर USB से जोड़ें और RD Service में Ready देखें।',
-                'ब्राउज़र को लोकल RD Service से जुड़ने दें।',
+                'ब्राउज़र को लोकल RD Service से जुड़ने दें (पॉप-अप आने पर अनुमति दें)।',
                 'यहाँ टेस्ट स्कैन करें।',
               ]
             : [
@@ -35,12 +35,12 @@ class DeviceScreen extends StatelessWidget {
         c.hi
             ? [
                 'iOS पर RD Service सपोर्ट की पुष्टि बाकी है।',
-                'विकल्प: प्रमाणित Lightning/USB-C स्कैनर, या Android डिवाइस इस्तेमाल करें।',
+                'विकल्प: प्रमाणित Lightning/USB-C स्कैनर, या Android/Web डिवाइस इस्तेमाल करें।',
                 'तब तक iOS पर AEPS फ़िंगरप्रिंट चरण अक्षम रहेगा।',
               ]
             : [
                 'RD Service support on iOS is not confirmed.',
-                'Options under review: a certified Lightning/USB-C scanner, or use an Android device.',
+                'Options under review: certified Lightning/USB-C scanner, or use an Android/Web device.',
                 'Until confirmed, the AEPS fingerprint step stays disabled on iOS.',
               ],
       _ =>
@@ -58,193 +58,375 @@ class DeviceScreen extends StatelessWidget {
                 'Run a test capture here.',
               ],
     };
-    return ScreenPad(
+    final faqs = [
+      (
+        c.both('Device shows not connected', 'डिवाइस जुड़ा नहीं दिखता'),
+        c.hi
+            ? [
+                'केबल दोनों तरफ़ से ठीक से लगाएँ।',
+                'दूसरा USB पोर्ट या OTG एडैप्टर आज़माएँ।',
+                'स्कैनर की लाइट जल रही है, देखें।',
+              ]
+            : [
+                'Reconnect the cable firmly at both ends.',
+                'Try another USB port or OTG adapter.',
+                'Check the scanner light is on.',
+              ],
+      ),
+      (
+        c.both('RD Service not responding', 'RD Service जवाब नहीं दे रहा'),
+        c.hi
+            ? [
+                'RD Service ऐप खोलें और Ready स्थिति देखें।',
+                'डिवाइस का RD रजिस्ट्रेशन समाप्त तो नहीं हुआ, जाँचें।',
+                'फ़ोन या PC रीस्टार्ट करें।',
+              ]
+            : [
+                'Open the RD Service app and check it says Ready.',
+                'Check the device RD registration has not expired.',
+                'Restart the phone or PC.',
+              ],
+      ),
+      (
+        c.both('Fingerprint keeps failing', 'फ़िंगरप्रिंट बार-बार असफल'),
+        c.hi
+            ? [
+                'स्कैनर का शीशा मुलायम कपड़े से साफ़ करें।',
+                'ग्राहक की उंगली सूखी और साफ़ हो।',
+                'दूसरी उंगली या अंगूठा आज़माएँ।',
+              ]
+            : [
+                'Clean the scanner glass with a soft cloth.',
+                'Customer’s finger should be clean and dry.',
+                'Try another finger or the thumb.',
+              ],
+      ),
+    ];
+
+    final scanner = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: cardBox(p),
+      constraints: const BoxConstraints(minHeight: 280),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(c.t('device_t'), style: display(22, color: p.ink)),
-          const SizedBox(height: 12),
-          Notice(
-            tone: ready
-                ? NoticeTone.ok
-                : d == DeviceState.disconnected
-                ? NoticeTone.warn
-                : NoticeTone.err,
-            icon: ready ? ApIcons.shield : ApIcons.usb,
+          FingerprintPad(
+            state: c.devTest == 'run'
+                ? PadState.capturing
+                : c.devTest == 'done'
+                ? PadState.good
+                : ready
+                ? PadState.place
+                : PadState.bad,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            c.devTest == 'run'
+                ? c.t('capturing')
+                : c.devTest == 'done'
+                ? c.both('Capture quality good', 'स्कैन अच्छा है')
+                : c.t('test_cap'),
+            style: display(18, color: p.ink),
+            textAlign: TextAlign.center,
+          ),
+          if (c.devTest != 'run') ...[
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: Text(
+                c.devTest == 'done'
+                    ? c.both(
+                        'Quality score 78/100 (demo)',
+                        'गुणवत्ता स्कोर 78/100 (डेमो)',
+                      )
+                    : c.both(
+                        'Place your own finger to check the scanner works.',
+                        'अपनी उंगली रखकर जाँचें कि स्कैनर ठीक काम कर रहा है।',
+                      ),
+                style: body(14, color: p.ink2, height: 1.45),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (c.devTest == 'done')
+              ApButton(
+                label: c.t('test_cap'),
+                kind: ApButtonKind.outline,
+                onPressed: c.testCapture,
+              )
+            else if (ready)
+              ApButton(
+                label: c.t('test_cap'),
+                icon: ApIcons.fingerprintSimple,
+                onPressed: c.testCapture,
+              )
+            else
+              ApButton(
+                label: c.t('check_again'),
+                icon: ApIcons.refresh,
+                onPressed: c.recheckDevicePage,
+              ),
+          ],
+        ],
+      ),
+    );
+
+    final guide = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _DevTabs(
+          value: c.devTab,
+          onChanged: c.setDevTab,
+          items: const [
+            ('web', 'Web (Windows)'),
+            ('android', 'Android'),
+            ('ios', 'iOS'),
+          ],
+        ),
+        for (var i = 0; i < steps.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(left: 20, bottom: 10),
             child: Text(
-              ready
-                  ? '${c.t('dev_ready')}\n${c.both('L1 RD fingerprint scanner (demo) · RD Service running', 'L1 RD फ़िंगरप्रिंट स्कैनर (डेमो) · RD Service चालू')}'
-                  : '${c.t(d == DeviceState.disconnected ? 'dev_off_t' : 'dev_perm_t')}\n${c.t(d == DeviceState.disconnected ? 'dev_off_p' : 'dev_perm_p')}',
+              '${i + 1}.  ${steps[i]}',
+              style: body(14, color: p.ink, height: 1.5),
             ),
           ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: cardBox(p),
-            constraints: const BoxConstraints(minHeight: 280),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+        const SizedBox(height: 2),
+        Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              c.both(
+                'Supported scanner models and platform support are an integration dependency to confirm.',
+                'डिवाइस मॉडल और प्लेटफ़ॉर्म सपोर्ट एक इंटीग्रेशन निर्भरता है।',
+              ),
+              style: body(12.5, color: p.ink2),
+            ),
+            AssumeTag(label: c.both('Dependency', 'Dependency')),
+          ],
+        ),
+      ],
+    );
+
+    return ScreenPad(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 980),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(c.t('device_t'), style: display(22, color: p.ink)),
+            const SizedBox(height: 18),
+            Notice(
+              padding: const EdgeInsets.all(18),
+              tone: ready
+                  ? NoticeTone.ok
+                  : d == DeviceState.disconnected
+                  ? NoticeTone.warn
+                  : NoticeTone.err,
+              icon: ready
+                  ? ApIcons.shield
+                  : d == DeviceState.disconnected
+                  ? ApIcons.usb
+                  : ApIcons.alert,
+              title: ready
+                  ? c.t('dev_ready')
+                  : c.t(
+                      d == DeviceState.disconnected
+                          ? 'dev_off_t'
+                          : 'dev_perm_t',
+                    ),
+              child: Text(
+                ready
+                    ? c.both(
+                        'L1 RD fingerprint scanner (demo) · RD Service running · checked just now',
+                        'L1 RD फ़िंगरप्रिंट स्कैनर (डेमो) · RD Service चालू · आखिरी जाँच अभी',
+                      )
+                    : c.t(
+                        d == DeviceState.disconnected
+                            ? 'dev_off_p'
+                            : 'dev_perm_p',
+                      ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            LayoutBuilder(
+              builder: (context, box) {
+                if (box.maxWidth < 700) {
+                  return Column(
+                    children: [scanner, const SizedBox(height: 16), guide],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: scanner),
+                    const SizedBox(width: 16),
+                    Expanded(child: guide),
+                  ],
+                );
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 22, bottom: 10),
+              child: Text(c.t('trouble'), style: display(16, color: p.ink)),
+            ),
+            _Accord(items: faqs),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
               children: [
-                FingerprintPad(
-                  state: c.devTest == 'run'
-                      ? PadState.capturing
-                      : c.devTest == 'done'
-                      ? PadState.good
-                      : ready
-                      ? PadState.place
-                      : PadState.bad,
+                ApButton(
+                  label: c.both('Request repair', 'मरम्मत अनुरोध'),
+                  kind: ApButtonKind.outline,
+                  icon: ApIcons.settings,
+                  onPressed: () => c.sim('repair'),
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  c.devTest == 'run'
-                      ? c.t('capturing')
-                      : c.devTest == 'done'
-                      ? c.both('Capture quality good', 'स्कैन अच्छा है')
-                      : c.t('test_cap'),
-                  style: display(18, color: p.ink),
-                  textAlign: TextAlign.center,
+                ApButton(
+                  label: c.both('Get a device', 'नया डिवाइस'),
+                  kind: ApButtonKind.ghost,
+                  icon: ApIcons.device,
+                  onPressed: () => c.sim('buy'),
                 ),
-                if (c.devTest != 'run') ...[
-                  const SizedBox(height: 14),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 340),
-                    child: Text(
-                      c.devTest == 'done'
-                          ? c.both(
-                              'Quality score 78/100 (demo)',
-                              'गुणवत्ता स्कोर 78/100 (डेमो)',
-                            )
-                          : c.both(
-                              'Place your own finger to check the scanner works.',
-                              'अपनी उंगली रखकर जाँचें कि स्कैनर ठीक काम कर रहा है।',
-                            ),
-                      style: body(14, color: p.ink2, height: 1.45),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  if (c.devTest == 'done')
-                    ApButton(
-                      label: c.t('test_cap'),
-                      kind: ApButtonKind.outline,
-                      onPressed: c.testCapture,
-                    )
-                  else if (ready)
-                    ApButton(
-                      label: c.t('test_cap'),
-                      icon: ApIcons.fingerprint,
-                      onPressed: c.testCapture,
-                    )
-                  else
-                    ApButton(
-                      label: c.t('check_again'),
-                      icon: ApIcons.refresh,
-                      onPressed: c.recheckDevicePage,
-                    ),
-                ],
               ],
             ),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final tab in [
-                ('web', 'Web (Windows)'),
-                ('android', 'Android'),
-                ('ios', 'iOS'),
-              ])
-                ApChip(
-                  label: tab.$2,
-                  selected: c.devTab == tab.$1,
-                  onTap: () => c.setDevTab(tab.$1),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DevTabs extends StatelessWidget {
+  const _DevTabs({
+    required this.value,
+    required this.onChanged,
+    required this.items,
+  });
+  final String value;
+  final ValueChanged<String> onChanged;
+  final List<(String, String)> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = ap(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: p.line)),
+      ),
+      child: Row(
+        children: [
+          for (final item in items)
+            InkWell(
+              onTap: () => onChanged(item.$1),
+              child: Container(
+                height: 46,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: value == item.$1 ? p.primary : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          for (var i = 0; i < steps.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                '${i + 1}. ${steps[i]}',
-                style: body(14, color: p.ink),
+                child: Text(
+                  item.$2,
+                  style: body(
+                    14,
+                    weight: FontWeight.w600,
+                    color: value == item.$1 ? p.primary : p.ink2,
+                  ),
+                ),
               ),
             ),
-          const SizedBox(height: 8),
-          Text(c.t('trouble'), style: display(16, color: p.ink)),
-          _faq(
-            c.both('Device shows not connected', 'डिवाइस जुड़ा नहीं दिखता'),
-            c.hi
-                ? [
-                    'केबल दोनों तरफ़ से ठीक से लगाएँ।',
-                    'दूसरा USB पोर्ट या OTG एडैप्टर आज़माएँ।',
-                    'स्कैनर की लाइट जल रही है, देखें।',
-                  ]
-                : [
-                    'Reconnect the cable firmly at both ends.',
-                    'Try another USB port or OTG adapter.',
-                    'Check the scanner light is on.',
-                  ],
-          ),
-          _faq(
-            c.both('RD Service not responding', 'RD Service जवाब नहीं दे रहा'),
-            c.hi
-                ? [
-                    'RD Service ऐप खोलें और Ready स्थिति देखें।',
-                    'डिवाइस का RD रजिस्ट्रेशन जाँचें।',
-                    'फ़ोन रीस्टार्ट करें।',
-                  ]
-                : [
-                    'Open the RD Service app and check it says Ready.',
-                    'Check the device RD registration has not expired.',
-                    'Restart the phone.',
-                  ],
-          ),
-          _faq(
-            c.both('Fingerprint keeps failing', 'फ़िंगरप्रिंट बार-बार असफल'),
-            c.hi
-                ? [
-                    'स्कैनर का शीशा मुलायम कपड़े से साफ़ करें।',
-                    'ग्राहक की उंगली सूखी और साफ़ हो।',
-                    'दूसरी उंगली या अंगूठा आज़माएँ।',
-                  ]
-                : [
-                    'Clean the scanner glass with a soft cloth.',
-                    'Customer’s finger should be clean and dry.',
-                    'Try another finger or the thumb.',
-                  ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: [
-              ApButton(
-                label: c.both('Request repair', 'मरम्मत अनुरोध'),
-                kind: ApButtonKind.outline,
-                icon: ApIcons.settings,
-                onPressed: () => c.sim('repair'),
-              ),
-              ApButton(
-                label: c.both('Get a device', 'नया डिवाइस'),
-                kind: ApButtonKind.ghost,
-                icon: ApIcons.device,
-                onPressed: () => c.sim('buy'),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
+}
 
-  Widget _faq(String q, List<String> a) => ExpansionTile(
-    title: Text(q, style: body(14, weight: FontWeight.w600)),
-    children: [
-      for (final line in a)
-        ListTile(dense: true, title: Text(line, style: body(13))),
-    ],
-  );
+class _Accord extends StatefulWidget {
+  const _Accord({required this.items});
+  final List<(String, List<String>)> items;
+  @override
+  State<_Accord> createState() => _AccordState();
+}
+
+class _AccordState extends State<_Accord> {
+  int? open;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = ap(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: p.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < widget.items.length; i++) ...[
+            if (i > 0) Divider(height: 1, thickness: 1, color: p.line),
+            InkWell(
+              onTap: () => setState(() => open = open == i ? null : i),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  child: Row(
+                    children: [
+                      Icon(ApIcons.help, size: 20, color: p.primary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.items[i].$1,
+                          style: body(
+                            14,
+                            weight: FontWeight.w600,
+                            color: p.ink,
+                          ),
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: open == i ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 250),
+                        child: Icon(ApIcons.chevD, size: 20, color: p.ink2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (open == i)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var n = 0; n < widget.items[i].$2.length; n++)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 20, bottom: 6),
+                        child: Text(
+                          '${n + 1}.  ${widget.items[i].$2[n]}',
+                          style: body(14, color: p.ink2, height: 1.55),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class HelpScreen extends StatelessWidget {
