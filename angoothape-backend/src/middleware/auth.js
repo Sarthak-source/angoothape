@@ -38,8 +38,8 @@ export async function requireAuth(req, _res, next) {
       throw fail(401, 'unauthenticated', 'Session expired');
     }
     const { rows } = await query(
-      `SELECT id, partner_id, name, shop, city, mobile_mask, role, distributor,
-              wallet_main, wallet_aeps, wallet_earn
+      `SELECT id, partner_id, name, shop, city, mobile_mask, mobile, role, distributor,
+              wallet_main, wallet_aeps, wallet_earn, lang, dark, text_scale, device_state
          FROM retailers WHERE id = $1`,
       [payload.sub],
     );

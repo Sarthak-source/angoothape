@@ -140,3 +140,67 @@ CREATE TABLE IF NOT EXISTS applications (
 );
 
 ALTER TABLE IF EXISTS banks ALTER COLUMN color TYPE BIGINT;
+
+ALTER TABLE retailers ADD COLUMN IF NOT EXISTS mobile TEXT;
+ALTER TABLE retailers ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'en';
+ALTER TABLE retailers ADD COLUMN IF NOT EXISTS dark BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE retailers ADD COLUMN IF NOT EXISTS text_scale NUMERIC(4, 2) NOT NULL DEFAULT 1;
+ALTER TABLE retailers ADD COLUMN IF NOT EXISTS device_state TEXT NOT NULL DEFAULT 'ready';
+
+CREATE TABLE IF NOT EXISTS devices (
+  retailer_id   UUID PRIMARY KEY REFERENCES retailers(id) ON DELETE CASCADE,
+  model         TEXT NOT NULL DEFAULT 'L1 RD fingerprint scanner (demo)',
+  rd_ready      BOOLEAN NOT NULL DEFAULT true,
+  last_tested_at TIMESTAMPTZ,
+  last_score    INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS service_requests (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  retailer_id UUID REFERENCES retailers(id) ON DELETE CASCADE,
+  kind        TEXT NOT NULL,
+  payload     JSONB NOT NULL DEFAULT '{}'::jsonb,
+  status      TEXT NOT NULL DEFAULT 'received',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS password_resets (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  retailer_id  UUID NOT NULL REFERENCES retailers(id) ON DELETE CASCADE,
+  code_hash    TEXT NOT NULL,
+  expires_at   TIMESTAMPTZ NOT NULL,
+  consumed_at  TIMESTAMPTZ,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS ekyc_checks (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  public_id    TEXT UNIQUE NOT NULL,
+  pan          TEXT,
+  verified     BOOLEAN NOT NULL DEFAULT true,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS device_guides (
+  platform TEXT NOT NULL,
+  lang     TEXT NOT NULL,
+  sort     INTEGER NOT NULL,
+  body     TEXT NOT NULL,
+  PRIMARY KEY (platform, lang, sort)
+);
+
+CREATE TABLE IF NOT EXISTS device_faqs (
+  lang     TEXT NOT NULL,
+  sort     INTEGER NOT NULL,
+  question TEXT NOT NULL,
+  answers  JSONB NOT NULL,
+  PRIMARY KEY (lang, sort)
+);
+
+CREATE TABLE IF NOT EXISTS fail_reasons (
+  id       TEXT NOT NULL,
+  lang     TEXT NOT NULL,
+  text     TEXT NOT NULL,
+  next     TEXT NOT NULL,
+  PRIMARY KEY (id, lang)
+);

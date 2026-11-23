@@ -5,6 +5,9 @@ import {
   issues,
   futureServices,
   miniTemplate,
+  deviceGuides,
+  deviceFaqs,
+  failReasons,
 } from './catalog-data.js';
 
 function refFor(i, at) {
@@ -55,6 +58,35 @@ export async function seedCatalog() {
       );
     }
   }
+  await query('DELETE FROM device_guides');
+  await query('DELETE FROM device_faqs');
+  await query('DELETE FROM fail_reasons');
+  for (const [platform, langs] of Object.entries(deviceGuides)) {
+    for (const [lang, steps] of Object.entries(langs)) {
+      for (let i = 0; i < steps.length; i++) {
+        await query(
+          `INSERT INTO device_guides (platform, lang, sort, body) VALUES ($1,$2,$3,$4)`,
+          [platform, lang, i, steps[i]],
+        );
+      }
+    }
+  }
+  for (const [lang, items] of Object.entries(deviceFaqs)) {
+    for (let i = 0; i < items.length; i++) {
+      await query(
+        `INSERT INTO device_faqs (lang, sort, question, answers) VALUES ($1,$2,$3,$4)`,
+        [lang, i, items[i].q, JSON.stringify(items[i].a)],
+      );
+    }
+  }
+  for (const [id, langs] of Object.entries(failReasons)) {
+    for (const [lang, copy] of Object.entries(langs)) {
+      await query(
+        `INSERT INTO fail_reasons (id, lang, text, next) VALUES ($1,$2,$3,$4)`,
+        [id, lang, copy.text, copy.next],
+      );
+    }
+  }
 }
 
 async function insertMini(transactionId, at) {
@@ -93,6 +125,17 @@ export async function seedDemoRetailer(rid) {
       6500,
       412.5,
     ],
+  );
+  await query(
+    `UPDATE retailers SET mobile = '9876543521', lang = 'en', dark = false, text_scale = 1, device_state = 'ready'
+      WHERE id = $1`,
+    [rid],
+  );
+  await query(
+    `INSERT INTO devices (retailer_id, model, rd_ready)
+     VALUES ($1,'L1 RD fingerprint scanner (demo)', true)
+     ON CONFLICT (retailer_id) DO UPDATE SET model = EXCLUDED.model, rd_ready = true`,
+    [rid],
   );
 
   const now = Date.now();

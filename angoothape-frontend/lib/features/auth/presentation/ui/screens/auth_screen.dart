@@ -29,6 +29,8 @@ class AuthHost extends StatelessWidget {
             switch (c.route) {
               'login' => const LoginScreen(),
               'otp' => const OtpScreen(),
+              'forgot' => const ForgotScreen(),
+              'forgot-otp' => const ForgotConfirmScreen(),
               'join' => const SizedBox.shrink(),
               _ => const WelcomeScreen(),
             },
@@ -396,7 +398,7 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () => c.submitLogin(id.text, pw.text),
           ),
           TextButton(
-            onPressed: () => c.sim('forgot'),
+            onPressed: c.startForgot,
             child: Text(c.t('forgot')),
           ),
         ],
@@ -628,6 +630,125 @@ class _OtpScreenState extends State<OtpScreen> {
               ),
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class ForgotScreen extends StatefulWidget {
+  const ForgotScreen({super.key});
+  @override
+  State<ForgotScreen> createState() => _ForgotScreenState();
+}
+
+class _ForgotScreenState extends State<ForgotScreen> {
+  final id = TextEditingController();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final current = AppScope.of(context).login.id;
+    if (id.text.isEmpty && current.isNotEmpty) id.text = current;
+  }
+
+  @override
+  void dispose() {
+    id.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppScope.of(context);
+    final p = ap(context);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+      children: [
+        TextButton.icon(
+          onPressed: c.back,
+          icon: const Icon(ApIcons.chevL),
+          label: Text(c.t('back')),
+        ),
+        Text(
+          c.t('forgot'),
+          style: display(24, color: p.ink),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          c.both(
+            'We will send a 6-digit code to the registered mobile.',
+            'रजिस्टर्ड मोबाइल पर 6 अंकों का कोड भेजेंगे।',
+          ),
+          style: body(14, color: p.ink2),
+        ),
+        const SizedBox(height: 16),
+        ApTextField(
+          label: c.t('agent_id'),
+          controller: id,
+          caps: true,
+          error: c.login.err.isEmpty ? null : c.login.err,
+        ),
+        ApButton(
+          label: c.t('cont'),
+          expand: true,
+          busy: c.login.busy,
+          onPressed: () => c.submitForgot(id.text),
+        ),
+      ],
+    );
+  }
+}
+
+class ForgotConfirmScreen extends StatefulWidget {
+  const ForgotConfirmScreen({super.key});
+  @override
+  State<ForgotConfirmScreen> createState() => _ForgotConfirmScreenState();
+}
+
+class _ForgotConfirmScreenState extends State<ForgotConfirmScreen> {
+  final otp = TextEditingController();
+  final password = TextEditingController();
+  @override
+  void dispose() {
+    otp.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppScope.of(context);
+    final p = ap(context);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+      children: [
+        TextButton(onPressed: c.back, child: Text(c.t('back'))),
+        Text(c.t('otp_t'), style: display(24, color: p.ink)),
+        if (c.login.demoOtp != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            '${c.t('otp_demo')}: ${c.login.demoOtp}',
+            style: body(13, color: p.accentText),
+          ),
+        ],
+        const SizedBox(height: 16),
+        ApTextField(
+          label: c.t('otp_t'),
+          controller: otp,
+          digits: 6,
+          maxLength: 6,
+          error: c.login.otpErr.isEmpty ? null : c.login.otpErr,
+        ),
+        ApTextField(
+          label: c.both('New password', 'नया पासवर्ड'),
+          controller: password,
+          obscure: true,
+        ),
+        ApButton(
+          label: c.both('Reset password', 'पासवर्ड रीसेट करें'),
+          expand: true,
+          busy: c.login.busy,
+          onPressed: () => c.confirmForgot(otp.text, password.text),
         ),
       ],
     );

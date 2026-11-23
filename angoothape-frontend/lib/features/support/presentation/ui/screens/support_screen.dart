@@ -16,92 +16,8 @@ class DeviceScreen extends StatelessWidget {
     final p = ap(context);
     final d = c.scenario.device;
     final ready = d == DeviceState.ready;
-    final steps = switch (c.devTab) {
-      'web' =>
-        c.hi
-            ? [
-                'Windows PC पर स्कैनर निर्माता का RD Service इंस्टॉल करें।',
-                'स्कैनर USB से जोड़ें और RD Service में Ready देखें।',
-                'ब्राउज़र को लोकल RD Service से जुड़ने दें (पॉप-अप आने पर अनुमति दें)।',
-                'यहाँ टेस्ट स्कैन करें।',
-              ]
-            : [
-                'Install the scanner maker’s RD Service on the Windows PC.',
-                'Connect the scanner by USB and confirm RD Service shows Ready.',
-                'Allow the browser to reach the local RD Service when prompted.',
-                'Run a test capture here.',
-              ],
-      'ios' =>
-        c.hi
-            ? [
-                'iOS पर RD Service सपोर्ट की पुष्टि बाकी है।',
-                'विकल्प: प्रमाणित Lightning/USB-C स्कैनर, या Android/Web डिवाइस इस्तेमाल करें।',
-                'तब तक iOS पर AEPS फ़िंगरप्रिंट चरण अक्षम रहेगा।',
-              ]
-            : [
-                'RD Service support on iOS is not confirmed.',
-                'Options under review: certified Lightning/USB-C scanner, or use an Android/Web device.',
-                'Until confirmed, the AEPS fingerprint step stays disabled on iOS.',
-              ],
-      _ =>
-        c.hi
-            ? [
-                'Play Store से स्कैनर का RD Service ऐप इंस्टॉल करें।',
-                'OTG एडैप्टर से स्कैनर जोड़ें, USB अनुमति दें।',
-                'RD Service ऐप में डिवाइस रजिस्टर करें।',
-                'यहाँ टेस्ट स्कैन करें।',
-              ]
-            : [
-                'Install the scanner’s RD Service app from Play Store.',
-                'Connect via OTG adapter and allow USB access.',
-                'Register the device in the RD Service app.',
-                'Run a test capture here.',
-              ],
-    };
-    final faqs = [
-      (
-        c.both('Device shows not connected', 'डिवाइस जुड़ा नहीं दिखता'),
-        c.hi
-            ? [
-                'केबल दोनों तरफ़ से ठीक से लगाएँ।',
-                'दूसरा USB पोर्ट या OTG एडैप्टर आज़माएँ।',
-                'स्कैनर की लाइट जल रही है, देखें।',
-              ]
-            : [
-                'Reconnect the cable firmly at both ends.',
-                'Try another USB port or OTG adapter.',
-                'Check the scanner light is on.',
-              ],
-      ),
-      (
-        c.both('RD Service not responding', 'RD Service जवाब नहीं दे रहा'),
-        c.hi
-            ? [
-                'RD Service ऐप खोलें और Ready स्थिति देखें।',
-                'डिवाइस का RD रजिस्ट्रेशन समाप्त तो नहीं हुआ, जाँचें।',
-                'फ़ोन या PC रीस्टार्ट करें।',
-              ]
-            : [
-                'Open the RD Service app and check it says Ready.',
-                'Check the device RD registration has not expired.',
-                'Restart the phone or PC.',
-              ],
-      ),
-      (
-        c.both('Fingerprint keeps failing', 'फ़िंगरप्रिंट बार-बार असफल'),
-        c.hi
-            ? [
-                'स्कैनर का शीशा मुलायम कपड़े से साफ़ करें।',
-                'ग्राहक की उंगली सूखी और साफ़ हो।',
-                'दूसरी उंगली या अंगूठा आज़माएँ।',
-              ]
-            : [
-                'Clean the scanner glass with a soft cloth.',
-                'Customer’s finger should be clean and dry.',
-                'Try another finger or the thumb.',
-              ],
-      ),
-    ];
+    final steps = deviceGuide(c.devTab, c.lang);
+    final faqs = deviceFaqs[c.lang] ?? deviceFaqs['en'] ?? const <(String, List<String>)>[];
 
     final scanner = Container(
       width: double.infinity,
@@ -283,13 +199,13 @@ class DeviceScreen extends StatelessWidget {
                   label: c.both('Request repair', 'मरम्मत अनुरोध'),
                   kind: ApButtonKind.outline,
                   icon: ApIcons.settings,
-                  onPressed: () => c.sim('repair'),
+                  onPressed: () => c.deviceRequest('repair'),
                 ),
                 ApButton(
                   label: c.both('Get a device', 'नया डिवाइस'),
                   kind: ApButtonKind.ghost,
                   icon: ApIcons.device,
-                  onPressed: () => c.sim('buy'),
+                  onPressed: () => c.deviceRequest('order'),
                 ),
               ],
             ),
@@ -817,6 +733,15 @@ class ProfileScreen extends StatelessWidget {
             style: body(14, color: p.ink2),
           ),
           const SizedBox(height: 12),
+          ListTile(
+            leading: Icon(ApIcons.edit, color: p.primary),
+            title: Text(
+              c.both('Edit profile', 'प्रोफ़ाइल बदलें'),
+              style: body(14, weight: FontWeight.w700),
+            ),
+            trailing: const Icon(ApIcons.chevR),
+            onTap: c.openProfile,
+          ),
           _row(
             p,
             ApIcons.globe,
@@ -891,7 +816,7 @@ class ProfileScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(ApIcons.lock),
             title: Text(c.both('Password & security', 'पासवर्ड और सुरक्षा')),
-            onTap: () => c.sim('pw'),
+            onTap: c.openPassword,
           ),
           ListTile(
             leading: Icon(ApIcons.refresh, color: p.warning),
@@ -909,7 +834,7 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              c.both('angoothaPe · mock data', 'angoothaPe · मॉक डेटा'),
+              c.both('angoothaPe · live session data', 'angoothaPe · लाइव सेशन डेटा'),
               style: body(12, color: p.ink3),
             ),
           ),

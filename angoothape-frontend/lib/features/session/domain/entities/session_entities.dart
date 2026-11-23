@@ -59,6 +59,9 @@ void applyCatalog({
   required Map<String, List<(String, String)>> nextFaqs,
   required Map<String, List<String>> nextIssues,
   required Map<String, List<(String, String)>> nextFuture,
+  Map<String, Map<String, List<String>>> nextGuides = const {},
+  Map<String, List<(String, List<String>)>> nextDeviceFaqs = const {},
+  Map<String, ReasonCopy> nextReasons = const {},
 }) {
   banks
     ..clear()
@@ -79,6 +82,21 @@ void applyCatalog({
   _futureServices
     ..clear()
     ..addAll(nextFuture);
+  if (nextGuides.isNotEmpty) {
+    deviceGuides
+      ..clear()
+      ..addAll(nextGuides);
+  }
+  if (nextDeviceFaqs.isNotEmpty) {
+    deviceFaqs
+      ..clear()
+      ..addAll(nextDeviceFaqs);
+  }
+  if (nextReasons.isNotEmpty) {
+    reasons
+      ..clear()
+      ..addAll(nextReasons);
+  }
 }
 
 class Retailer {
@@ -88,6 +106,7 @@ class Retailer {
     required this.shop,
     required this.city,
     required this.mobile,
+    this.mobileFull = '',
     required this.role,
     required this.distributor,
   });
@@ -97,6 +116,7 @@ class Retailer {
   final String shop;
   final String city;
   final String mobile;
+  final String mobileFull;
   final String role;
   final String distributor;
 
@@ -116,10 +136,21 @@ class Retailer {
     shop: '',
     city: '',
     mobile: '',
+    mobileFull: '',
     role: '',
     distributor: '',
   );
 }
+
+List<String> deviceGuide(String platform, String lang) =>
+    (deviceGuides[platform]?[lang] ?? deviceGuides[platform]?['en'] ?? const []);
+
+Map<String, Map<String, List<String>>> deviceGuides = {};
+
+Map<String, List<(String, List<String>)>> deviceFaqs = {
+  'en': [],
+  'hi': [],
+};
 
 class MiniLine {
   MiniLine({required this.label, required this.date, required this.amount});
@@ -314,6 +345,7 @@ class JoinDraft {
   bool ekycBusy = false;
   bool busy = false;
   String? applicationId;
+  String? ekycId;
 }
 
 class HistFilter {
@@ -331,7 +363,7 @@ class NewReq {
   bool tried = false;
 }
 
-enum SheetKind { bank, receipt, settle, addBank, scenarios }
+enum SheetKind { bank, receipt, settle, addBank, scenarios, profile, password, topup }
 
 class SheetModel {
   SheetModel(this.kind);
@@ -358,7 +390,7 @@ class ReasonCopy {
   String next(String lang) => lang == 'hi' ? nextHi : nextEn;
 }
 
-const reasons = <String, ReasonCopy>{
+final reasons = <String, ReasonCopy>{
   'insufficient': ReasonCopy(
     en: "Customer's account has insufficient balance.",
     hi: 'ग्राहक के खाते में पर्याप्त बैलेंस नहीं है।',

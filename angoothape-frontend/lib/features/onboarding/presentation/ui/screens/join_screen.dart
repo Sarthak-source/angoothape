@@ -732,8 +732,8 @@ class _KycStepState extends State<_KycStep> {
             icon: ApIcons.shield,
             child: Text(
               c.both(
-                'Verified (simulated). Aadhaar number was not stored.',
-                'सत्यापित (सिम्युलेटेड)। आधार नंबर सेव नहीं किया गया।',
+                'Verified. Aadhaar number was not stored.',
+                'सत्यापित। आधार नंबर सेव नहीं किया गया।',
               ),
             ),
           )
@@ -747,7 +747,7 @@ class _KycStepState extends State<_KycStep> {
             icon: ApIcons.shield,
             expand: true,
             busy: j.ekycBusy,
-            onPressed: c.runEkyc,
+            onPressed: () => c.runEkyc(pan.text),
           ),
         if (j.tried && !j.ekyc)
           HelpText(

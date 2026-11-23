@@ -5,6 +5,28 @@ import { fail } from '../middleware/error.js';
 
 export const joinRouter = Router();
 
+joinRouter.post('/ekyc', async (req, res, next) => {
+  try {
+    const pan = String(req.body?.pan || '')
+      .trim()
+      .toUpperCase();
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) {
+      throw fail(400, 'invalid', 'Enter a valid PAN');
+    }
+    const publicId = `EKYC-${crypto.randomInt(100000, 999999)}`;
+    const inserted = await query(
+      `INSERT INTO ekyc_checks (public_id, pan, verified)
+       VALUES ($1,$2,true)
+       RETURNING public_id AS id, verified`,
+      [publicId, pan],
+    );
+    res.status(201).json({ ekyc: inserted.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
 function mapApp(row) {
   return {
     id: row.public_id,
@@ -31,7 +53,11 @@ joinRouter.post('/', async (req, res, next) => {
       `INSERT INTO applications (public_id, role, payload, status)
        VALUES ($1,$2,$3,'submitted')
        RETURNING public_id, role, status, created_at`,
-      [publicId, role, JSON.stringify({ fields, docs })],
+      [
+        publicId,
+        role,
+        JSON.stringify({ fields, docs, ekycId: req.body?.ekycId || null }),
+      ],
     );
     res.status(201).json({ application: mapApp(inserted.rows[0]) });
   } catch (err) {

@@ -43,6 +43,7 @@ Retailer retailerFromJson(Map<String, dynamic> j) => Retailer(
   shop: j['shop'] as String? ?? '',
   city: j['city'] as String? ?? '',
   mobile: j['mobile'] as String? ?? '',
+  mobileFull: j['mobileFull'] as String? ?? '',
   role: j['role'] as String? ?? '',
   distributor: j['distributor'] as String? ?? '',
 );
@@ -127,6 +128,37 @@ void applyCatalogJson(Map<String, dynamic> json) {
     nextFaqs: langPairs(json['faqs'], a: 'q', b: 'a'),
     nextIssues: langStrings(json['issues']),
     nextFuture: langPairs(json['futureServices'], a: 'id', b: 'label'),
+    nextGuides: {
+      for (final e in Map<String, dynamic>.from(json['deviceGuides'] as Map? ?? {}).entries)
+        e.key: {
+          for (final lang in Map<String, dynamic>.from(e.value as Map).entries)
+            lang.key: [
+              for (final step in lang.value as List? ?? []) step.toString(),
+            ],
+        },
+    },
+    nextDeviceFaqs: {
+      for (final e in Map<String, dynamic>.from(json['deviceFaqs'] as Map? ?? {}).entries)
+        e.key: [
+          for (final x in e.value as List? ?? [])
+            if (x is Map)
+              (
+                (x['q'] ?? '').toString(),
+                [
+                  for (final a in x['a'] as List? ?? []) a.toString(),
+                ],
+              ),
+        ],
+    },
+    nextReasons: {
+      for (final e in Map<String, dynamic>.from(json['failReasons'] as Map? ?? {}).entries)
+        e.key: ReasonCopy(
+          en: ((e.value as Map)['en']?['text'] ?? '').toString(),
+          hi: ((e.value as Map)['hi']?['text'] ?? '').toString(),
+          nextEn: ((e.value as Map)['en']?['next'] ?? '').toString(),
+          nextHi: ((e.value as Map)['hi']?['next'] ?? '').toString(),
+        ),
+    },
   );
 }
 

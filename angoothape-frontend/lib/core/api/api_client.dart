@@ -53,6 +53,10 @@ class ApiClient {
     return _send('POST', path, body: body);
   }
 
+  Future<Map<String, dynamic>> patch(String path, [Map<String, dynamic>? body]) {
+    return _send('PATCH', path, body: body);
+  }
+
   Future<Map<String, dynamic>> _send(
     String method,
     String path, {
@@ -67,13 +71,21 @@ class ApiClient {
     };
     http.Response res;
     try {
-      res = method == 'GET'
-          ? await _http.get(uri, headers: headers)
-          : await _http.post(
-              uri,
-              headers: headers,
-              body: jsonEncode(body ?? {}),
-            );
+      if (method == 'GET') {
+        res = await _http.get(uri, headers: headers);
+      } else if (method == 'PATCH') {
+        res = await _http.patch(
+          uri,
+          headers: headers,
+          body: jsonEncode(body ?? {}),
+        );
+      } else {
+        res = await _http.post(
+          uri,
+          headers: headers,
+          body: jsonEncode(body ?? {}),
+        );
+      }
     } catch (_) {
       throw ApiException(
         0,

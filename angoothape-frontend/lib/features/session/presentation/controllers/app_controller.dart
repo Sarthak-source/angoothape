@@ -156,6 +156,10 @@ class AppController extends ChangeNotifier {
         return 'welcome';
       case 'otp':
         return 'login';
+      case 'forgot':
+        return 'login';
+      case 'forgot-otp':
+        return 'forgot';
       case 'join':
         return 'welcome';
       case 'more':
@@ -201,6 +205,7 @@ class AppController extends ChangeNotifier {
   void setLang(String value) {
     lang = value;
     notifyListeners();
+    unawaited(_savePrefs());
   }
 
   void toggleLang() => setLang(lang == 'en' ? 'hi' : 'en');
@@ -208,11 +213,24 @@ class AppController extends ChangeNotifier {
   void toggleDark() {
     dark = !dark;
     notifyListeners();
+    unawaited(_savePrefs());
   }
 
   void setScale(double value) {
     scale = value;
     notifyListeners();
+    unawaited(_savePrefs());
+  }
+
+  Future<void> _savePrefs() async {
+    if (!authed) return;
+    try {
+      await api.patch('/api/me/preferences', {
+        'lang': lang,
+        'dark': dark,
+        'scale': scale,
+      });
+    } catch (_) {}
   }
 
   // ----- auth -----
@@ -285,6 +303,16 @@ class AppController extends ChangeNotifier {
   Future<void> refreshSession() async {
     final res = await api.get('/api/me');
     data = appDataFromSession(res);
+    final prefs = Map<String, dynamic>.from(res['prefs'] as Map? ?? {});
+    if (prefs['lang'] is String) lang = prefs['lang'] as String;
+    if (prefs['dark'] is bool) dark = prefs['dark'] as bool;
+    if (prefs['scale'] is num) scale = (prefs['scale'] as num).toDouble();
+    final device = prefs['deviceState'] as String?;
+    scenario.device = switch (device) {
+      'disconnected' => DeviceState.disconnected,
+      'permission' => DeviceState.permission,
+      _ => DeviceState.ready,
+    };
   }
 
   void _applyWallet(Map<String, dynamic>? json) {
@@ -401,6 +429,7 @@ class AppController extends ChangeNotifier {
           'role': join.role,
           'fields': join.f,
           'docs': join.docs,
+          'ekycId': join.ekycId,
         });
         final app = Map<String, dynamic>.from(res['application'] as Map);
         join.applicationId = app['id'] as String?;
@@ -422,13 +451,25 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> runEkyc() async {
+  Future<void> runEkyc([String pan = '']) async {
     join.ekycBusy = true;
     notifyListeners();
-    await Future.delayed(const Duration(milliseconds: 900));
-    join.ekycBusy = false;
-    join.ekyc = true;
-    notifyListeners();
+    try {
+      final value = pan.trim().toUpperCase().isEmpty
+          ? (join.f['pan'] ?? '').trim().toUpperCase()
+          : pan.trim().toUpperCase();
+      join.f['pan'] = value;
+      final res = await api.post('/join/ekyc', {
+        'pan': value,
+      });
+      join.ekycId = (res['ekyc'] as Map?)?['id'] as String?;
+      join.ekyc = true;
+    } on ApiException catch (e) {
+      toast(e.message);
+    } finally {
+      join.ekycBusy = false;
+      notifyListeners();
+    }
   }
 
   void attachDoc(String key, String name) {
@@ -940,14 +981,29 @@ class AppController extends ChangeNotifier {
   Future<void> testCapture() async {
     devTest = 'run';
     notifyListeners();
-    await Future.delayed(const Duration(milliseconds: 1600));
-    if (route == 'device') {
-      devTest = 'done';
+    try {
+      await api.post('/api/device/test');
+      if (route == 'device') {
+        devTest = 'done';
+        notifyListeners();
+      }
+    } on ApiException catch (e) {
+      devTest = 'idle';
+      toast(e.message);
       notifyListeners();
     }
   }
 
-  void recheckDevicePage() {
+  Future<void> recheckDevicePage() async {
+    try {
+      final res = await api.get('/api/device');
+      final state = res['state'] as String? ?? 'ready';
+      scenario.device = switch (state) {
+        'disconnected' => DeviceState.disconnected,
+        'permission' => DeviceState.permission,
+        _ => DeviceState.ready,
+      };
+    } catch (_) {}
     devTest = 'idle';
     notifyListeners();
     toast(
@@ -980,6 +1036,12 @@ class AppController extends ChangeNotifier {
   void setDevice(DeviceState v) {
     scenario.device = v;
     notifyListeners();
+    if (!authed) return;
+    unawaited(() async {
+      try {
+        await api.patch('/api/device', {'state': v.name});
+      } catch (_) {}
+    }());
   }
 
   void setCaptureRetry(bool v) {
@@ -987,34 +1049,179 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void sim(String key) {
-    final msg = switch (key) {
-      'print' => t('sim_print'),
-      'download' => t('sim_dl'),
-      'share' => t('sim_share'),
-      'export' => both(
-        'Simulated: production exports CSV/PDF.',
-        'सिम्युलेटेड: असली ऐप में CSV/PDF एक्सपोर्ट होगा।',
-      ),
-      'topup' => both(
-        'Simulated: wallet top-up is a future module.',
-        'सिम्युलेटेड: वॉलेट टॉप-अप भविष्य का मॉड्यूल है।',
-      ),
-      'forgot' => both(
-        'Simulated: password reset will use an OTP to your registered mobile.',
-        'सिम्युलेटेड: पासवर्ड रीसेट OTP से होगा।',
-      ),
-      'repair' => both(
-        'Simulated: device repair requests come later.',
-        'सिम्युलेटेड: मरम्मत अनुरोध भविष्य में।',
-      ),
-      'buy' => both(
-        'Simulated: device ordering comes later.',
-        'सिम्युलेटेड: डिवाइस खरीद भविष्य में।',
-      ),
-      'pw' => both('Simulated in this prototype.', 'सिम्युलेटेड।'),
-      _ => both('Simulated.', 'सिम्युलेटेड।'),
-    };
-    toast(msg, sim: true);
+  void openProfile() {
+    sheet = SheetModel(SheetKind.profile);
+    notifyListeners();
+  }
+
+  void openPassword() {
+    sheet = SheetModel(SheetKind.password);
+    notifyListeners();
+  }
+
+  void openTopup() {
+    sheet = SheetModel(SheetKind.topup);
+    notifyListeners();
+  }
+
+  Future<void> submitProfile(Map<String, String> f) async {
+    final s = sheet;
+    if (s == null) return;
+    s.f = f;
+    s.tried = true;
+    if ((f['name'] ?? '').trim().isEmpty ||
+        (f['shop'] ?? '').trim().isEmpty ||
+        (f['city'] ?? '').trim().isEmpty ||
+        !validMobile(f['mobile'] ?? '')) {
+      notifyListeners();
+      return;
+    }
+    try {
+      final res = await api.patch('/api/me', {
+        'name': f['name']!.trim(),
+        'shop': f['shop']!.trim(),
+        'city': f['city']!.trim(),
+        'mobile': f['mobile']!.trim(),
+      });
+      data.retailer = retailerFromJson(
+        Map<String, dynamic>.from(res['retailer'] as Map),
+      );
+      sheet = null;
+      notifyListeners();
+      toast(both('Profile saved', 'प्रोफ़ाइल सेव हो गई'));
+    } on ApiException catch (e) {
+      toast(e.message);
+      notifyListeners();
+    }
+  }
+
+  Future<void> submitPassword(String current, String next) async {
+    final s = sheet;
+    if (s == null) return;
+    s.tried = true;
+    if (current.isEmpty || next.length < 8) {
+      notifyListeners();
+      return;
+    }
+    try {
+      await api.post('/api/me/password', {'current': current, 'next': next});
+      sheet = null;
+      notifyListeners();
+      toast(both('Password updated', 'पासवर्ड बदल गया'));
+    } on ApiException catch (e) {
+      toast(e.message);
+      notifyListeners();
+    }
+  }
+
+  Future<void> submitTopup() async {
+    final s = sheet;
+    if (s == null) return;
+    final n = int.tryParse(s.amt) ?? 0;
+    s.tried = true;
+    if (n < 100 || n > 50000) {
+      notifyListeners();
+      return;
+    }
+    try {
+      final res = await api.post('/api/wallet/topup', {'amount': n});
+      _applyWallet(
+        res['wallet'] == null
+            ? null
+            : Map<String, dynamic>.from(res['wallet'] as Map),
+      );
+      sheet = null;
+      notifyListeners();
+      toast(both('Top-up recorded', 'टॉप-अप दर्ज हो गया'));
+    } on ApiException catch (e) {
+      toast(e.message);
+      notifyListeners();
+    }
+  }
+
+  Future<void> startForgot() async {
+    login.err = '';
+    login.otp = '';
+    login.otpErr = '';
+    login.demoOtp = null;
+    go('forgot');
+  }
+
+  Future<void> submitForgot(String id) async {
+    login.id = id;
+    login.err = '';
+    login.busy = true;
+    notifyListeners();
+    try {
+      final res = await api.post('/auth/forgot', {
+        'partnerId': id.trim().toUpperCase(),
+      });
+      login.busy = false;
+      login.demoOtp = res['otp'] as String?;
+      login.resendAt = DateTime.now().add(const Duration(seconds: 30));
+      go('forgot-otp');
+    } on ApiException catch (e) {
+      login.busy = false;
+      login.err = e.message;
+      notifyListeners();
+    }
+  }
+
+  Future<void> confirmForgot(String otp, String password) async {
+    login.otp = otp;
+    login.otpErr = '';
+    login.busy = true;
+    notifyListeners();
+    try {
+      await api.post('/auth/forgot/confirm', {
+        'partnerId': login.id.trim().toUpperCase(),
+        'otp': otp,
+        'password': password,
+      });
+      login.busy = false;
+      toast(both('Password reset. Sign in.', 'पासवर्ड रीसेट हो गया। लॉग इन करें।'));
+      go('login');
+    } on ApiException catch (e) {
+      login.busy = false;
+      login.otpErr = e.message;
+      notifyListeners();
+    }
+  }
+
+  Future<void> receiptAction(String kind, {String? ref}) async {
+    final id = ref ?? sheet?.ref ?? '';
+    if (id.isEmpty) return;
+    try {
+      await api.post('/api/receipts/$id/actions', {'kind': kind});
+      toast(t(switch (kind) {
+        'print' => 'sim_print',
+        'download' => 'sim_dl',
+        _ => 'sim_share',
+      }));
+    } on ApiException catch (e) {
+      toast(e.message);
+    }
+  }
+
+  Future<void> requestExport() async {
+    try {
+      await api.post('/api/exports', {'range': hist.range, 'format': 'csv'});
+      toast(both('Export requested', 'एक्सपोर्ट अनुरोध भेजा गया'));
+    } on ApiException catch (e) {
+      toast(e.message);
+    }
+  }
+
+  Future<void> deviceRequest(String kind) async {
+    try {
+      await api.post('/api/device/requests', {'kind': kind});
+      toast(
+        kind == 'repair'
+            ? both('Repair request sent', 'मरम्मत अनुरोध भेजा गया')
+            : both('Device order request sent', 'डिवाइस ऑर्डर अनुरोध भेजा गया'),
+      );
+    } on ApiException catch (e) {
+      toast(e.message);
+    }
   }
 }

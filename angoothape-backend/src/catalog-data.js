@@ -115,3 +115,144 @@ export const miniTemplate = [
   { daysAgo: 5, label: 'PM-KISAN CR', amount: 2000 },
   { daysAgo: 6, label: 'AEPS WDL', amount: -1000 },
 ];
+
+export const deviceGuides = {
+  android: {
+    en: [
+      'Install the scanner’s RD Service app from Play Store.',
+      'Connect via OTG adapter and allow USB access.',
+      'Register the device in the RD Service app.',
+      'Run a test capture here.',
+    ],
+    hi: [
+      'Play Store से स्कैनर का RD Service ऐप इंस्टॉल करें।',
+      'OTG एडैप्टर से स्कैनर जोड़ें, USB अनुमति दें।',
+      'RD Service ऐप में डिवाइस रजिस्टर करें।',
+      'यहाँ टेस्ट स्कैन करें।',
+    ],
+  },
+  web: {
+    en: [
+      'Install the scanner maker’s RD Service on the Windows PC.',
+      'Connect the scanner by USB and confirm RD Service shows Ready.',
+      'Allow the browser to reach the local RD Service when prompted.',
+      'Run a test capture here.',
+    ],
+    hi: [
+      'Windows PC पर स्कैनर निर्माता का RD Service इंस्टॉल करें।',
+      'स्कैनर USB से जोड़ें और RD Service में Ready देखें।',
+      'ब्राउज़र को लोकल RD Service से जुड़ने दें (पॉप-अप आने पर अनुमति दें)।',
+      'यहाँ टेस्ट स्कैन करें।',
+    ],
+  },
+  ios: {
+    en: [
+      'RD Service support on iOS is not confirmed.',
+      'Options under review: certified Lightning/USB-C scanner, or use an Android/Web device.',
+      'Until confirmed, the AEPS fingerprint step stays disabled on iOS.',
+    ],
+    hi: [
+      'iOS पर RD Service सपोर्ट की पुष्टि बाकी है।',
+      'विकल्प: प्रमाणित Lightning/USB-C स्कैनर, या Android/Web डिवाइस इस्तेमाल करें।',
+      'तब तक iOS पर AEPS फ़िंगरप्रिंट चरण अक्षम रहेगा।',
+    ],
+  },
+};
+
+export const deviceFaqs = {
+  en: [
+    {
+      q: 'Device shows not connected',
+      a: [
+        'Reconnect the cable firmly at both ends.',
+        'Try another USB port or OTG adapter.',
+        'Check the scanner light is on.',
+      ],
+    },
+    {
+      q: 'RD Service not responding',
+      a: [
+        'Open the RD Service app and check it says Ready.',
+        'Check the device RD registration has not expired.',
+        'Restart the phone or PC.',
+      ],
+    },
+    {
+      q: 'Fingerprint keeps failing',
+      a: [
+        'Clean the scanner glass with a soft cloth.',
+        'Customer’s finger should be clean and dry.',
+        'Try another finger or the thumb.',
+      ],
+    },
+  ],
+  hi: [
+    {
+      q: 'डिवाइस जुड़ा नहीं दिखता',
+      a: [
+        'केबल दोनों तरफ़ से ठीक से लगाएँ।',
+        'दूसरा USB पोर्ट या OTG एडैप्टर आज़माएँ।',
+        'स्कैनर की लाइट जल रही है, देखें।',
+      ],
+    },
+    {
+      q: 'RD Service जवाब नहीं दे रहा',
+      a: [
+        'RD Service ऐप खोलें और Ready स्थिति देखें।',
+        'डिवाइस का RD रजिस्ट्रेशन समाप्त तो नहीं हुआ, जाँचें।',
+        'फ़ोन या PC रीस्टार्ट करें।',
+      ],
+    },
+    {
+      q: 'फ़िंगरप्रिंट बार-बार असफल',
+      a: [
+        'स्कैनर का शीशा मुलायम कपड़े से साफ़ करें।',
+        'ग्राहक की उंगली सूखी और साफ़ हो।',
+        'दूसरी उंगली या अंगूठा आज़माएँ।',
+      ],
+    },
+  ],
+};
+
+export const failReasons = {
+  insufficient: {
+    en: {
+      text: "Customer's account has insufficient balance.",
+      next: 'Ask the customer to try a smaller amount or check their balance.',
+    },
+    hi: {
+      text: 'ग्राहक के खाते में पर्याप्त बैलेंस नहीं है।',
+      next: 'ग्राहक से कम राशि आज़माने या बैलेंस जाँचने को कहें।',
+    },
+  },
+  bio: {
+    en: {
+      text: "Fingerprint didn't match Aadhaar records.",
+      next: 'Try another finger. If it keeps failing, the customer may need to update biometrics at an Aadhaar centre.',
+    },
+    hi: {
+      text: 'फ़िंगरप्रिंट आधार रिकॉर्ड से मेल नहीं खाया।',
+      next: 'दूसरी उंगली आज़माएँ। बार-बार असफल हो तो ग्राहक को आधार केंद्र पर बायोमेट्रिक अपडेट करवाना पड़ सकता है।',
+    },
+  },
+  bankdown: {
+    en: {
+      text: "Customer's bank is not responding right now.",
+      next: 'Try again in a few minutes or use another bank account if the customer has one.',
+    },
+    hi: {
+      text: 'ग्राहक का बैंक अभी जवाब नहीं दे रहा।',
+      next: 'कुछ मिनट बाद फिर कोशिश करें या ग्राहक का दूसरा बैंक खाता इस्तेमाल करें।',
+    },
+  },
+  timeout: {
+    en: {
+      text: 'Bank did not confirm the transaction. It was marked failed.',
+      next: 'If the customer was debited, the bank reverses it automatically. Raise a support request to track it.',
+    },
+    hi: {
+      text: 'बैंक ने लेन-देन की पुष्टि नहीं की। इसे असफल माना गया।',
+      next: 'अगर पैसा कटा है तो बैंक अपने-आप लौटा देगा। ट्रैक करने के लिए सहायता अनुरोध करें।',
+    },
+  },
+};

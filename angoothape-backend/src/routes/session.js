@@ -5,6 +5,8 @@ import { requireAuth } from '../middleware/auth.js';
 import { fail } from '../middleware/error.js';
 import { miniTemplate } from '../catalog-data.js';
 import { seedDemoRetailer } from '../demo-seed.js';
+import { maskMobile, recordRequest } from '../requests.js';
+import argon2 from 'argon2';
 
 export const sessionRouter = Router();
 sessionRouter.use(requireAuth);
@@ -101,8 +103,15 @@ sessionRouter.get('/me', async (req, res, next) => {
         shop: u.shop,
         city: u.city,
         mobile: u.mobile_mask,
+        mobileFull: u.mobile || '',
         role: u.role,
         distributor: u.distributor,
+      },
+      prefs: {
+        lang: u.lang || 'en',
+        dark: Boolean(u.dark),
+        scale: Number(u.text_scale || 1),
+        deviceState: u.device_state || 'ready',
       },
       wallet: {
         main: money(u.wallet_main),
@@ -459,6 +468,194 @@ sessionRouter.post('/tickets', async (req, res, next) => {
       [req.user.id, publicId, type, message, ref],
     );
     res.status(201).json({ ticket: inserted.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+sessionRouter.patch('/me', async (req, res, next) => {
+  try {
+    const name = String(req.body?.name || '').trim();
+    const shop = String(req.body?.shop || '').trim();
+    const city = String(req.body?.city || '').trim();
+    const mobile = String(req.body?.mobile || '').replace(/\D/g, '');
+    if (!name || !shop || !city) throw fail(400, 'invalid', 'Fill name, shop and city');
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      throw fail(400, 'invalid', 'Enter a valid 10-digit mobile');
+    }
+    const { rows } = await query(
+      `UPDATE retailers
+          SET name = $2, shop = $3, city = $4, mobile = $5, mobile_mask = $6
+        WHERE id = $1
+        RETURNING partner_id AS id, name, shop, city, mobile_mask AS mobile, mobile AS "mobileFull",
+                  role, distributor`,
+      [req.user.id, name, shop, city, mobile, maskMobile(mobile)],
+    );
+    res.json({ retailer: rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+sessionRouter.patch('/me/preferences', async (req, res, next) => {
+  try {
+    const lang = req.body?.lang === 'hi' ? 'hi' : 'en';
+    const dark = Boolean(req.body?.dark);
+    const scale = Number(req.body?.scale) === 1.15 ? 1.15 : 1;
+    await query(
+      `UPDATE retailers SET lang = $2, dark = $3, text_scale = $4 WHERE id = $1`,
+      [req.user.id, lang, dark, scale],
+    );
+    res.json({ prefs: { lang, dark, scale } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+sessionRouter.post('/me/password', async (req, res, next) => {
+  try {
+    const current = String(req.body?.current || '');
+    const nextPw = String(req.body?.next || '');
+    if (nextPw.length < 8) {
+      throw fail(400, 'invalid', 'New password must be at least 8 characters');
+    }
+    const { rows } = await query(
+      'SELECT password_hash FROM retailers WHERE id = $1',
+      [req.user.id],
+    );
+    const ok = await argon2.verify(rows[0].password_hash, current).catch(() => false);
+    if (!ok) throw fail(401, 'invalid', 'Current password is wrong');
+    const hash = await argon2.hash(nextPw, { type: argon2.argon2id });
+    await query('UPDATE retailers SET password_hash = $2 WHERE id = $1', [
+      req.user.id,
+      hash,
+    ]);
+    await recordRequest(req.user.id, 'password_change', {});
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+sessionRouter.get('/device', async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      'SELECT model, rd_ready, last_tested_at, last_score FROM devices WHERE retailer_id = $1',
+      [req.user.id],
+    );
+    res.json({
+      state: req.user.device_state || 'ready',
+      device: rows[0] || {
+        model: 'L1 RD fingerprint scanner (demo)',
+        rd_ready: true,
+        last_tested_at: null,
+        last_score: null,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+sessionRouter.post('/device/test', async (req, res, next) => {
+  try {
+    const score = 78;
+    const { rows } = await query(
+      `INSERT INTO devices (retailer_id, last_tested_at, last_score, rd_ready)
+       VALUES ($1, now(), $2, true)
+       ON CONFLICT (retailer_id) DO UPDATE
+         SET last_tested_at = now(), last_score = $2, rd_ready = true
+       RETURNING model, rd_ready, last_tested_at, last_score`,
+      [req.user.id, score],
+    );
+    res.json({ ok: true, score, device: rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+sessionRouter.patch('/device', async (req, res, next) => {
+  try {
+    const allowed = ['ready', 'disconnected', 'permission'];
+    const state = String(req.body?.state || '');
+    if (!allowed.includes(state)) throw fail(400, 'invalid', 'Unknown device state');
+    await query('UPDATE retailers SET device_state = $2 WHERE id = $1', [
+      req.user.id,
+      state,
+    ]);
+    res.json({ state });
+  } catch (err) {
+    next(err);
+  }
+});
+
+sessionRouter.post('/device/requests', async (req, res, next) => {
+  try {
+    const kind = String(req.body?.kind || '');
+    if (!['repair', 'order'].includes(kind)) {
+      throw fail(400, 'invalid', 'Unknown device request');
+    }
+    const row = await recordRequest(req.user.id, `device_${kind}`, req.body || {});
+    res.status(201).json({ request: row });
+  } catch (err) {
+    next(err);
+  }
+});
+
+sessionRouter.post('/wallet/topup', async (req, res, next) => {
+  try {
+    const amount = Number(req.body?.amount || 0);
+    if (amount < 100 || amount > 50000) {
+      throw fail(400, 'invalid_amount', 'Enter an amount between 100 and 50000');
+    }
+    await query(
+      'UPDATE retailers SET wallet_main = wallet_main + $2 WHERE id = $1',
+      [req.user.id, amount],
+    );
+    await recordRequest(req.user.id, 'wallet_topup', { amount });
+    const w = await query(
+      'SELECT wallet_main, wallet_aeps, wallet_earn FROM retailers WHERE id = $1',
+      [req.user.id],
+    );
+    res.status(201).json({
+      wallet: {
+        main: money(w.rows[0].wallet_main),
+        aeps: money(w.rows[0].wallet_aeps),
+        earn: money(w.rows[0].wallet_earn),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+sessionRouter.post('/exports', async (req, res, next) => {
+  try {
+    const row = await recordRequest(req.user.id, 'export', {
+      range: req.body?.range || '30',
+      format: req.body?.format || 'csv',
+    });
+    res.status(201).json({ request: row });
+  } catch (err) {
+    next(err);
+  }
+});
+
+sessionRouter.post('/receipts/:ref/actions', async (req, res, next) => {
+  try {
+    const kind = String(req.body?.kind || '');
+    if (!['print', 'share', 'download'].includes(kind)) {
+      throw fail(400, 'invalid', 'Unknown receipt action');
+    }
+    const tx = await query(
+      'SELECT ref FROM transactions WHERE retailer_id = $1 AND ref = $2',
+      [req.user.id, req.params.ref],
+    );
+    if (!tx.rows[0]) throw fail(404, 'not_found', 'Transaction not found');
+    const row = await recordRequest(req.user.id, `receipt_${kind}`, {
+      ref: req.params.ref,
+    });
+    res.status(201).json({ request: row });
   } catch (err) {
     next(err);
   }

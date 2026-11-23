@@ -66,6 +66,9 @@ class _SheetLayerState extends State<_SheetLayer>
       SheetKind.settle => const _SettleSheet(),
       SheetKind.addBank => const _AddBankSheet(),
       SheetKind.scenarios => const _ScenarioSheet(),
+      SheetKind.profile => const _ProfileSheet(),
+      SheetKind.password => const _PasswordSheet(),
+      SheetKind.topup => const _TopupSheet(),
     };
     return Positioned.fill(
       child: AnimatedBuilder(
@@ -576,7 +579,7 @@ class _ReceiptSheet extends StatelessWidget {
                 child: ApButton(
                   label: c.t('share'),
                   icon: ApIcons.share,
-                  onPressed: () => c.sim('share'),
+                  onPressed: () => c.receiptAction('share'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -585,7 +588,7 @@ class _ReceiptSheet extends StatelessWidget {
                   label: c.t('print'),
                   kind: ApButtonKind.outline,
                   icon: ApIcons.printer,
-                  onPressed: () => c.sim('print'),
+                  onPressed: () => c.receiptAction('print'),
                 ),
               ),
             ] else ...[
@@ -600,13 +603,13 @@ class _ReceiptSheet extends StatelessWidget {
                 label: c.t('download'),
                 kind: ApButtonKind.outline,
                 icon: ApIcons.download,
-                onPressed: () => c.sim('download'),
+                onPressed: () => c.receiptAction('download'),
               ),
               const SizedBox(width: 10),
               ApButton(
                 label: c.t('print'),
                 icon: ApIcons.printer,
-                onPressed: () => c.sim('print'),
+                onPressed: () => c.receiptAction('print'),
               ),
             ],
           ],
@@ -621,8 +624,8 @@ class _ReceiptSheet extends StatelessWidget {
               Expanded(
                 child: Text(
                   c.both(
-                    'Print, download and share are simulated in this prototype.',
-                    'प्रिंट, डाउनलोड और शेयर इस प्रोटोटाइप में सिम्युलेटेड हैं।',
+                    'Each print, download or share is stored on your account.',
+                    'हर प्रिंट, डाउनलोड या शेयर आपके खाते में दर्ज होता है।',
                   ),
                   style: body(12, color: ap(context).ink2),
                 ),
@@ -1115,4 +1118,225 @@ class _ScenarioSheet extends StatelessWidget {
     DeviceState.disconnected => c.t('dev_off'),
     DeviceState.permission => c.t('dev_perm'),
   };
+}
+
+class _ProfileSheet extends StatefulWidget {
+  const _ProfileSheet();
+  @override
+  State<_ProfileSheet> createState() => _ProfileSheetState();
+}
+
+class _ProfileSheetState extends State<_ProfileSheet> {
+  final name = TextEditingController();
+  final shop = TextEditingController();
+  final city = TextEditingController();
+  final mobile = TextEditingController();
+  var _filled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_filled) return;
+    _filled = true;
+    final r = AppScope.of(context).data.retailer;
+    name.text = r.name;
+    shop.text = r.shop;
+    city.text = r.city;
+    mobile.text = r.mobileFull.isNotEmpty ? r.mobileFull : r.mobile;
+  }
+
+  @override
+  void dispose() {
+    name.dispose();
+    shop.dispose();
+    city.dispose();
+    mobile.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppScope.of(context);
+    final tried = c.sheet?.tried ?? false;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _SheetHead(c.both('Edit profile', 'प्रोफ़ाइल बदलें')),
+        Flexible(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(18, 4, 18, 0),
+            child: Column(
+              children: [
+                ApTextField(
+                  label: c.both('Name', 'नाम'),
+                  controller: name,
+                  error: tried && name.text.trim().isEmpty
+                      ? c.both('Enter your name', 'नाम लिखें')
+                      : null,
+                ),
+                ApTextField(
+                  label: c.both('Shop', 'दुकान'),
+                  controller: shop,
+                  error: tried && shop.text.trim().isEmpty
+                      ? c.both('Enter shop name', 'दुकान का नाम लिखें')
+                      : null,
+                ),
+                ApTextField(
+                  label: c.both('City', 'शहर'),
+                  controller: city,
+                  error: tried && city.text.trim().isEmpty
+                      ? c.both('Enter city', 'शहर लिखें')
+                      : null,
+                ),
+                ApTextField(
+                  label: c.t('mobile'),
+                  controller: mobile,
+                  digits: 10,
+                  error: tried && !validMobile(mobile.text)
+                      ? c.t('e_mobile')
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        _SheetFoot(
+          children: [
+            ApButton(
+              label: c.both('Save', 'सेव करें'),
+              expand: true,
+              onPressed: () => c.submitProfile({
+                'name': name.text,
+                'shop': shop.text,
+                'city': city.text,
+                'mobile': mobile.text,
+              }),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PasswordSheet extends StatefulWidget {
+  const _PasswordSheet();
+  @override
+  State<_PasswordSheet> createState() => _PasswordSheetState();
+}
+
+class _PasswordSheetState extends State<_PasswordSheet> {
+  final current = TextEditingController();
+  final next = TextEditingController();
+  @override
+  void dispose() {
+    current.dispose();
+    next.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppScope.of(context);
+    final tried = c.sheet?.tried ?? false;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _SheetHead(c.both('Password & security', 'पासवर्ड और सुरक्षा')),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 0),
+          child: Column(
+            children: [
+              ApTextField(
+                label: c.both('Current password', 'वर्तमान पासवर्ड'),
+                controller: current,
+                obscure: true,
+                error: tried && current.text.isEmpty
+                    ? c.both('Enter current password', 'वर्तमान पासवर्ड लिखें')
+                    : null,
+              ),
+              ApTextField(
+                label: c.both('New password', 'नया पासवर्ड'),
+                controller: next,
+                obscure: true,
+                error: tried && next.text.length < 8
+                    ? c.both('Use at least 8 characters', 'कम से कम 8 अक्षर')
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        _SheetFoot(
+          children: [
+            ApButton(
+              label: c.both('Update password', 'पासवर्ड बदलें'),
+              expand: true,
+              onPressed: () => c.submitPassword(current.text, next.text),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TopupSheet extends StatefulWidget {
+  const _TopupSheet();
+  @override
+  State<_TopupSheet> createState() => _TopupSheetState();
+}
+
+class _TopupSheetState extends State<_TopupSheet> {
+  final amt = TextEditingController();
+  @override
+  void dispose() {
+    amt.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppScope.of(context);
+    final n = int.tryParse(amt.text) ?? 0;
+    final err = (c.sheet?.tried ?? false) && (n < 100 || n > 50000);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _SheetHead(c.both('Wallet top-up', 'वॉलेट टॉप-अप')),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 0),
+          child: ApTextField(
+            label: c.both('Amount', 'राशि'),
+            controller: amt,
+            digits: 7,
+            invalid: err,
+            onChanged: (v) {
+              c.setSettleAmt(v);
+              setState(() {});
+            },
+          ),
+        ),
+        if (err)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+            child: HelpText(
+              c.both('Enter between ₹100 and ₹50,000.', '₹100 से ₹50,000 के बीच लिखें।'),
+              error: true,
+            ),
+          ),
+        _SheetFoot(
+          children: [
+            ApButton(
+              label: c.both('Add to wallet', 'वॉलेट में जोड़ें'),
+              expand: true,
+              onPressed: () {
+                c.setSettleAmt(amt.text);
+                c.submitTopup();
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
