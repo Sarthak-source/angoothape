@@ -1,11 +1,11 @@
 {
-    "name": "angoothape",
-    "short_name": "angoothape",
+    "name": "angoothaPe",
+    "short_name": "angoothaPe",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#302D70",
+    "theme_color": "#302D70",
+    "description": "angoothaPe retailer app — AEPS cash withdrawal.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
