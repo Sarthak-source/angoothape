@@ -1,29 +1,54 @@
 # angoothape
 
-Retailer AEPS prototype (Flutter). Mock data only — no real money, Aadhaar, or biometric capture.
+```
+angoothape/
+  angoothape-frontend/    Flutter retailer app
+  angoothape-backend/     Express + PostgreSQL API
+```
 
 ## Demo login
-
-Use these on the login and OTP screens. They are not shown in the app UI.
 
 | Field | Value |
 | --- | --- |
 | Partner ID | `AP100245` |
 | Password | `Demo@123` |
-| OTP | `246810` |
+| OTP | shown on the OTP screen when `DEV_RETURN_OTP=1` |
 
-## Run locally
+## Backend
+
+Needs Docker (Postgres) and Node 20+.
 
 ```bash
-flutter pub get
-flutter run
+cd angoothape-backend
+cp .env.example .env
+docker compose up -d
+npm install
+npm run migrate
+npm run seed
+npm run dev
 ```
 
-## Web / Firebase Hosting
+API: http://localhost:8080
+
+## Frontend
 
 ```bash
-flutter build web --release
+cd angoothape-frontend
+flutter pub get
+flutter run --dart-define=API_BASE=http://localhost:8080
+```
+
+Web:
+
+```bash
+cd angoothape-frontend
+flutter run -d chrome --dart-define=API_BASE=http://localhost:8080
+```
+
+## Firebase Hosting
+
+```bash
+cd angoothape-frontend
+flutter build web --release --dart-define=API_BASE=https://YOUR-API-HOST
 firebase deploy --only hosting
 ```
-
-Live: https://angoothape-d77f9.web.app

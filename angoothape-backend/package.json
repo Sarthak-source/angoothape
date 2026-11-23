@@ -1,0 +1,30 @@
+{
+  "name": "angoothape-backend",
+  "version": "1.0.0",
+  "description": "angoothaPe retailer API — Express + PostgreSQL",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node ./app.js",
+    "dev": "nodemon ./app.js",
+    "migrate": "node ./src/migrate.js",
+    "seed": "node ./src/seed.js",
+    "test": "node --test tests/"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "argon2": "^0.44.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.16.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

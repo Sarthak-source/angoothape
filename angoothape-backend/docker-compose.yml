@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: angoothape
+      POSTGRES_PASSWORD: angoothape
+      POSTGRES_DB: angoothape
+    ports:
+      - "5432:5432"
+    volumes:
+      - angoothape_pg:/var/lib/postgresql/data
+
+volumes:
+  angoothape_pg:
