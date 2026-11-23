@@ -3,8 +3,7 @@ import crypto from 'node:crypto';
 import { query } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { fail } from '../middleware/error.js';
-import { miniTemplate } from '../catalog-data.js';
-import { seedDemoRetailer } from '../demo-seed.js';
+import { insertMiniLines, seedDemoRetailer } from '../demo-seed.js';
 import { maskMobile, recordRequest } from '../requests.js';
 import argon2 from 'argon2';
 
@@ -57,19 +56,6 @@ async function attachMinis(txRows) {
     byTx.set(line.transaction_id, list);
   }
   return txRows.map((row) => mapTx(row, byTx.get(row.id) || []));
-}
-
-async function insertMini(transactionId, at = new Date()) {
-  for (let i = 0; i < miniTemplate.length; i++) {
-    const line = miniTemplate[i];
-    const day = new Date(at);
-    day.setDate(day.getDate() - line.daysAgo);
-    await query(
-      `INSERT INTO mini_statement_lines (transaction_id, sort, label, occurred_on, amount)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [transactionId, i, line.label, day.toISOString().slice(0, 10), line.amount],
-    );
-  }
 }
 
 sessionRouter.get('/me', async (req, res, next) => {
@@ -276,7 +262,7 @@ sessionRouter.post('/aeps', async (req, res, next) => {
     const { rows } = await query('SELECT * FROM transactions WHERE ref = $1', [
       ref,
     ]);
-    if (svc === 'ms' && rows[0]) await insertMini(rows[0].id, now);
+    if (svc === 'ms' && rows[0]) await insertMiniLines(rows[0].id, now);
     const { rows: w } = await query(
       'SELECT wallet_main, wallet_aeps, wallet_earn FROM retailers WHERE id = $1',
       [req.user.id],

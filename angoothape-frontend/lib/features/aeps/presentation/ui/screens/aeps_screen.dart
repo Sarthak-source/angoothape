@@ -142,7 +142,7 @@ class _AepsDetailsState extends State<AepsDetails> {
     final bank = bankById(a.bank);
     final liveSummary = layout.aepsSummary == SummaryPlacement.liveSidePanel;
     final popularCount = layout.isMobile ? 4 : 8;
-    final popular = banks.where((b) => b.popular).take(popularCount).toList();
+    final popular = popularBanks.take(popularCount).toList();
     void review() => c.reviewAeps(
       mobile: mobile.text,
       aadhaar: _digits(idCtrl.text),

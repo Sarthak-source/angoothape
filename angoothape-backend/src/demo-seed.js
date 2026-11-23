@@ -19,87 +19,98 @@ function rrn(i) {
   return String(900000000000 + i);
 }
 
+async function insertRows(table, columns, rows) {
+  if (!rows.length) return;
+  const params = [];
+  const tuples = rows.map((row) => {
+    const slots = row.map((value) => {
+      params.push(value);
+      return `$${params.length}`;
+    });
+    return `(${slots.join(',')})`;
+  });
+  await query(
+    `INSERT INTO ${table} (${columns.join(',')}) VALUES ${tuples.join(',')}`,
+    params,
+  );
+}
+
+export async function insertMiniLines(transactionId, at = new Date()) {
+  const rows = miniTemplate.map((line, i) => {
+    const day = new Date(at);
+    day.setDate(day.getDate() - line.daysAgo);
+    return [
+      transactionId,
+      i,
+      line.label,
+      day.toISOString().slice(0, 10),
+      line.amount,
+    ];
+  });
+  await insertRows(
+    'mini_statement_lines',
+    ['transaction_id', 'sort', 'label', 'occurred_on', 'amount'],
+    rows,
+  );
+}
+
 export async function seedCatalog() {
   await query('DELETE FROM future_services');
   await query('DELETE FROM issue_types');
   await query('DELETE FROM faqs');
   await query('DELETE FROM banks');
-  for (let i = 0; i < banks.length; i++) {
-    const b = banks[i];
-    await query(
-      `INSERT INTO banks (id, name, short, color, popular, ifsc_prefix, sort)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [b.id, b.name, b.short, b.color, b.popular, b.ifscPrefix, i],
-    );
-  }
-  for (const lang of Object.keys(faqs)) {
-    for (let i = 0; i < faqs[lang].length; i++) {
-      const item = faqs[lang][i];
-      await query(
-        `INSERT INTO faqs (lang, sort, question, answer) VALUES ($1,$2,$3,$4)`,
-        [lang, i, item[0], item[1]],
-      );
-    }
-  }
-  for (const lang of Object.keys(issues)) {
-    for (let i = 0; i < issues[lang].length; i++) {
-      await query(
-        `INSERT INTO issue_types (lang, sort, label) VALUES ($1,$2,$3)`,
-        [lang, i, issues[lang][i]],
-      );
-    }
-  }
-  for (const lang of Object.keys(futureServices)) {
-    for (let i = 0; i < futureServices[lang].length; i++) {
-      const [id, label] = futureServices[lang][i];
-      await query(
-        `INSERT INTO future_services (id, lang, sort, label) VALUES ($1,$2,$3,$4)`,
-        [id, lang, i, label],
-      );
-    }
-  }
+  await insertRows(
+    'banks',
+    ['id', 'name', 'short', 'color', 'popular', 'ifsc_prefix', 'sort'],
+    banks.map((b, i) => [b.id, b.name, b.short, b.color, b.popular, b.ifscPrefix, i]),
+  );
+  await insertRows(
+    'faqs',
+    ['lang', 'sort', 'question', 'answer'],
+    Object.entries(faqs).flatMap(([lang, items]) =>
+      items.map((item, i) => [lang, i, item[0], item[1]]),
+    ),
+  );
+  await insertRows(
+    'issue_types',
+    ['lang', 'sort', 'label'],
+    Object.entries(issues).flatMap(([lang, items]) =>
+      items.map((label, i) => [lang, i, label]),
+    ),
+  );
+  await insertRows(
+    'future_services',
+    ['id', 'lang', 'sort', 'label'],
+    Object.entries(futureServices).flatMap(([lang, items]) =>
+      items.map(([id, label], i) => [id, lang, i, label]),
+    ),
+  );
   await query('DELETE FROM device_guides');
   await query('DELETE FROM device_faqs');
   await query('DELETE FROM fail_reasons');
-  for (const [platform, langs] of Object.entries(deviceGuides)) {
-    for (const [lang, steps] of Object.entries(langs)) {
-      for (let i = 0; i < steps.length; i++) {
-        await query(
-          `INSERT INTO device_guides (platform, lang, sort, body) VALUES ($1,$2,$3,$4)`,
-          [platform, lang, i, steps[i]],
-        );
-      }
-    }
-  }
-  for (const [lang, items] of Object.entries(deviceFaqs)) {
-    for (let i = 0; i < items.length; i++) {
-      await query(
-        `INSERT INTO device_faqs (lang, sort, question, answers) VALUES ($1,$2,$3,$4)`,
-        [lang, i, items[i].q, JSON.stringify(items[i].a)],
-      );
-    }
-  }
-  for (const [id, langs] of Object.entries(failReasons)) {
-    for (const [lang, copy] of Object.entries(langs)) {
-      await query(
-        `INSERT INTO fail_reasons (id, lang, text, next) VALUES ($1,$2,$3,$4)`,
-        [id, lang, copy.text, copy.next],
-      );
-    }
-  }
-}
-
-async function insertMini(transactionId, at) {
-  for (let i = 0; i < miniTemplate.length; i++) {
-    const line = miniTemplate[i];
-    const day = new Date(at);
-    day.setDate(day.getDate() - line.daysAgo);
-    await query(
-      `INSERT INTO mini_statement_lines (transaction_id, sort, label, occurred_on, amount)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [transactionId, i, line.label, day.toISOString().slice(0, 10), line.amount],
-    );
-  }
+  await insertRows(
+    'device_guides',
+    ['platform', 'lang', 'sort', 'body'],
+    Object.entries(deviceGuides).flatMap(([platform, langs]) =>
+      Object.entries(langs).flatMap(([lang, steps]) =>
+        steps.map((body, i) => [platform, lang, i, body]),
+      ),
+    ),
+  );
+  await insertRows(
+    'device_faqs',
+    ['lang', 'sort', 'question', 'answers'],
+    Object.entries(deviceFaqs).flatMap(([lang, items]) =>
+      items.map((item, i) => [lang, i, item.q, JSON.stringify(item.a)]),
+    ),
+  );
+  await insertRows(
+    'fail_reasons',
+    ['id', 'lang', 'text', 'next'],
+    Object.entries(failReasons).flatMap(([id, langs]) =>
+      Object.entries(langs).map(([lang, copy]) => [id, lang, copy.text, copy.next]),
+    ),
+  );
 }
 
 export async function seedDemoRetailer(rid) {
@@ -184,7 +195,7 @@ export async function seedDemoRetailer(rid) {
       ],
     );
     if (r.status === 'pending') pendingRef = inserted.rows[0].ref;
-    if (r.svc === 'ms') await insertMini(inserted.rows[0].id, at);
+    if (r.svc === 'ms') await insertMiniLines(inserted.rows[0].id, at);
   }
 
   await query(

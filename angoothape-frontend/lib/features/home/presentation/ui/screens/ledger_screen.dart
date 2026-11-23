@@ -427,7 +427,7 @@ class TxnScreen extends StatelessWidget {
     final x = c.txnByRef(c.params['ref']);
     if (x == null) return Center(child: Text(c.both('Not found', 'नहीं मिला')));
     final b = bankById(x.bank);
-    final tickets = c.data.tickets.where((k) => k.ref == x.ref);
+    final tickets = c.data.ticketsByRef[x.ref] ?? const <Ticket>[];
     return ScreenPad(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -716,10 +716,7 @@ class WalletScreen extends StatelessWidget {
                           c.both('Settled', 'सेटल'),
                         ),
                       };
-                      final last4 = c.data.accounts
-                          .where((a) => a.bank == s.acct)
-                          .map((a) => a.last4)
-                          .firstOrNull;
+                      final last4 = c.data.last4ByBank[s.acct];
                       return ApListRow(
                         leading: ApListRow.tile(ApIcons.bank, bg, fg),
                         title: Text(

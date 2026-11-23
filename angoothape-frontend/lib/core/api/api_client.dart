@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,28 +20,46 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  ApiClient({http.Client? httpClient, this.baseUrl = apiBase})
-    : _http = httpClient ?? http.Client();
+  ApiClient({
+    http.Client? httpClient,
+    this.baseUrl = apiBase,
+    FlutterSecureStorage? storage,
+  }) : _http = httpClient ?? http.Client(),
+       _storage =
+           storage ??
+           const FlutterSecureStorage(
+             aOptions: AndroidOptions(encryptedSharedPreferences: true),
+             iOptions: IOSOptions(
+               accessibility: KeychainAccessibility.first_unlock_this_device,
+             ),
+           );
 
   final http.Client _http;
+  final FlutterSecureStorage _storage;
   final String baseUrl;
   String? token;
 
   static const _tokenKey = 'ap_token';
 
   Future<void> restore() async {
+    token = await _storage.read(key: _tokenKey);
+    if (token != null && token!.isNotEmpty) return;
     final prefs = await SharedPreferences.getInstance();
-    token = prefs.getString(_tokenKey);
+    final legacy = prefs.getString(_tokenKey);
+    if (legacy == null || legacy.isEmpty) return;
+    token = legacy;
+    await persistToken(legacy);
+    await prefs.remove(_tokenKey);
   }
 
   Future<void> persistToken(String value) async {
     token = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, value);
+    await _storage.write(key: _tokenKey, value: value);
   }
 
   Future<void> clearToken() async {
     token = null;
+    await _storage.delete(key: _tokenKey);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
   }

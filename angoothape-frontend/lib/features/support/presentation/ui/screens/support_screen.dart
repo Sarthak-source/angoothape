@@ -601,10 +601,7 @@ class TicketScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = AppScope.of(context);
     final p = ap(context);
-    Ticket? k;
-    for (final t in c.data.tickets) {
-      if (t.id == c.params['id']) k = t;
-    }
+    final k = c.data.ticketById[c.params['id']];
     if (k == null) return const SizedBox.shrink();
     final fresh = c.params['fresh'] == '1';
     return ScreenPad(

@@ -110,12 +110,10 @@ class AppController extends ChangeNotifier {
             },
           )
           .then((res) {
-            data.tx
-              ..clear()
-              ..addAll([
-                for (final x in res['tx'] as List? ?? [])
-                  txnFromJson(Map<String, dynamic>.from(x as Map)),
-              ]);
+            data.replaceTx([
+              for (final x in res['tx'] as List? ?? [])
+                txnFromJson(Map<String, dynamic>.from(x as Map)),
+            ]);
             hist.loading = false;
             if (route == 'hist') notifyListeners();
           })
@@ -692,7 +690,7 @@ class AppController extends ChangeNotifier {
       });
       if (token != _seq) return;
       final x = txnFromJson(Map<String, dynamic>.from(res['tx'] as Map));
-      data.tx.insert(0, x);
+      data.prependTx(x);
       _applyWallet(
         res['wallet'] == null
             ? null
@@ -732,13 +730,7 @@ class AppController extends ChangeNotifier {
     go('dash');
   }
 
-  Txn? txnByRef(String? ref) {
-    if (ref == null) return null;
-    for (final x in data.tx) {
-      if (x.ref == ref) return x;
-    }
-    return null;
-  }
+  Txn? txnByRef(String? ref) => ref == null ? null : data.txByRef[ref];
 
   Future<void> checkStatus(String ref) async {
     final x = txnByRef(ref);
@@ -751,8 +743,7 @@ class AppController extends ChangeNotifier {
       });
       checking[ref] = false;
       final next = txnFromJson(Map<String, dynamic>.from(res['tx'] as Map));
-      final i = data.tx.indexWhere((t) => t.ref == ref);
-      if (i >= 0) data.tx[i] = next;
+      data.putTx(next);
       _applyWallet(
         res['wallet'] == null
             ? null
@@ -808,7 +799,7 @@ class AppController extends ChangeNotifier {
       if (q.isEmpty) return true;
       final b = bankById(x.bank);
       return x.ref.toLowerCase().contains(q) ||
-          (b?.name.toLowerCase().contains(q) ?? false) ||
+          (b?.nameLower.contains(q) ?? false) ||
           x.aadhaar4.contains(q) ||
           x.mobile4.contains(q) ||
           x.rrn.contains(q);
@@ -900,7 +891,7 @@ class AppController extends ChangeNotifier {
         'acct2': f['acct2'],
         'ifsc': f['ifsc']!.toUpperCase(),
       });
-      data.accounts.add(
+      data.addAccount(
         accountFromJson(Map<String, dynamic>.from(res['account'] as Map)),
       );
       sheet = null;
@@ -963,7 +954,7 @@ class AppController extends ChangeNotifier {
         'ref': newReq.ref,
       });
       final k = ticketFromJson(Map<String, dynamic>.from(res['ticket'] as Map));
-      data.tickets.insert(0, k);
+      data.prependTicket(k);
       go('ticket', params: {'id': k.id, 'fresh': '1'});
       return true;
     } on ApiException catch (e) {

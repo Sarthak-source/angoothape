@@ -245,14 +245,14 @@ class _BankSheetState extends State<_BankSheet> {
     return KeyEventResult.ignored;
   }
 
-  List<Bank> get _matches => banks
-      .where(
-        (b) =>
-            q.isEmpty ||
-            b.name.toLowerCase().contains(q.toLowerCase()) ||
-            b.short.toLowerCase().contains(q.toLowerCase()),
-      )
-      .toList();
+  List<Bank> get _matches {
+    final needle = q.toLowerCase();
+    if (needle.isEmpty) return banks;
+    return [
+      for (final b in banks)
+        if (b.nameLower.contains(needle) || b.shortLower.contains(needle)) b,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -260,7 +260,7 @@ class _BankSheetState extends State<_BankSheet> {
     final p = ap(context);
     final layout = LayoutScope.of(context);
     final list = _matches;
-    final pop = banks.where((b) => b.popular).toList();
+    final pop = popularBanks;
     if (index >= list.length) index = 0;
     return Column(
       mainAxisSize: MainAxisSize.min,
