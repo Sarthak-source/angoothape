@@ -430,43 +430,36 @@ class _BusinessStepState extends State<_BusinessStep> {
       decoration: width >= 700 ? cardBox(p) : null,
       child: fields,
     );
-    final form = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final title = Row(
       children: [
-        Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: p.primarySoft,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(ApIcons.store, color: p.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    c.both('Business details', 'व्यवसाय का विवरण'),
-                    style: display(22, color: p.ink),
-                  ),
-                  Text(
-                    c.both(
-                      'Tell us about your business to set up your account.',
-                      'खाता बनाने के लिए अपने व्यवसाय के बारे में बताएँ।',
-                    ),
-                    style: body(13.5, color: p.ink2),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: p.primarySoft,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(ApIcons.store, color: p.primary),
         ),
-        const SizedBox(height: 14),
-        card,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                c.both('Business details', 'व्यवसाय का विवरण'),
+                style: display(22, color: p.ink),
+              ),
+              Text(
+                c.both(
+                  'Tell us about your business to set up your account.',
+                  'खाता बनाने के लिए अपने व्यवसाय के बारे में बताएँ।',
+                ),
+                style: body(13.5, color: p.ink2),
+              ),
+            ],
+          ),
+        ),
       ],
     );
     if (!showSide) {
@@ -474,7 +467,14 @@ class _BusinessStepState extends State<_BusinessStep> {
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: formMax),
-          child: form,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              title,
+              const SizedBox(height: 14),
+              card,
+            ],
+          ),
         ),
       );
     }
@@ -482,14 +482,23 @@ class _BusinessStepState extends State<_BusinessStep> {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1040),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(flex: 3, child: form),
-            const SizedBox(width: 28),
-            SizedBox(
-              width: 280,
-              child: _BusinessAside(onContinue: () => c.joinNext(collect())),
+            title,
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 3, child: card),
+                const SizedBox(width: 28),
+                SizedBox(
+                  width: 280,
+                  child: _BusinessAside(
+                    onContinue: () => c.joinNext(collect()),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -559,13 +568,14 @@ class _BusinessAside extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: Image.asset(
             'assets/images/business_shop.jpg',
             height: 200,
+            width: 280,
             fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
           ),
         ),
         const SizedBox(height: 18),

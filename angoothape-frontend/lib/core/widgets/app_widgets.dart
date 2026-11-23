@@ -515,13 +515,31 @@ class HelpText extends StatelessWidget {
   }
 }
 
+/// When present, idle fields draw [ApPalette.line] instead of a transparent
+/// edge — used inside sheets, where fill matches the popup card.
+class ApIdleOutline extends InheritedWidget {
+  const ApIdleOutline({super.key, required super.child});
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ApIdleOutline>() != null;
+
+  @override
+  bool updateShouldNotify(ApIdleOutline oldWidget) => false;
+}
+
 InputDecoration apInput(
   ApPalette p, {
   bool error = false,
   Widget? prefix,
   Widget? suffix,
   Color? fill,
+  bool idleBorder = false,
 }) {
+  final idle = error
+      ? p.error
+      : idleBorder
+      ? p.line
+      : Colors.transparent;
   return InputDecoration(
     filled: true,
     fillColor: fill ?? p.card,
@@ -532,14 +550,14 @@ InputDecoration apInput(
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(20),
-      borderSide: BorderSide(
-        color: error ? p.error : Colors.transparent,
-        width: 2,
-      ),
+      borderSide: BorderSide(color: idle, width: 2),
     ),
     disabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(20),
-      borderSide: const BorderSide(color: Colors.transparent, width: 2),
+      borderSide: BorderSide(
+        color: idleBorder ? p.line : Colors.transparent,
+        width: 2,
+      ),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(20),
@@ -618,6 +636,7 @@ class ApTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = ap(context);
     final bad = invalid || error != null;
+    final idleBorder = ApIdleOutline.of(context);
     return Padding(
       padding: padding,
       child: Column(
@@ -662,6 +681,7 @@ class ApTextField extends StatelessWidget {
                 fill: fill,
                 prefix: prefix,
                 suffix: suffix,
+                idleBorder: idleBorder,
               ).copyWith(hintText: hint),
             ),
           ),
@@ -703,6 +723,7 @@ class ApDropdown<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = ap(context);
+    final idleBorder = ApIdleOutline.of(context);
     return Padding(
       padding: padding,
       child: Column(
@@ -721,7 +742,12 @@ class ApDropdown<T> extends StatelessWidget {
                   ? body(14, weight: FontWeight.w500, color: p.ink)
                   : null,
               decoration: compact
-                  ? apInput(p, error: error != null, fill: fill).copyWith(
+                  ? apInput(
+                      p,
+                      error: error != null,
+                      fill: fill,
+                      idleBorder: idleBorder,
+                    ).copyWith(
                       constraints: const BoxConstraints(minHeight: 44),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(
@@ -729,7 +755,12 @@ class ApDropdown<T> extends StatelessWidget {
                         vertical: 11,
                       ),
                     )
-                  : apInput(p, error: error != null, fill: fill),
+                  : apInput(
+                      p,
+                      error: error != null,
+                      fill: fill,
+                      idleBorder: idleBorder,
+                    ),
             ),
           ),
           if (error != null) HelpText(error!, error: true),

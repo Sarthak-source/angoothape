@@ -131,7 +131,9 @@ class _SheetLayerState extends State<_SheetLayer>
                                             ),
                                           ),
                                         ),
-                                      Flexible(child: child),
+                                      Flexible(
+                                        child: ApIdleOutline(child: child),
+                                      ),
                                     ],
                                   ),
                                 ),
