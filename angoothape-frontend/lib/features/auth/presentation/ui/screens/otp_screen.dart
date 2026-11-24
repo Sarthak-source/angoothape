@@ -1,26 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
-import '../../../../../core/responsive/layout_service.dart';
 import '../../../../../core/theme/palette.dart';
 import '../../../../../core/widgets/app_widgets.dart';
-
-import '../widgets/auth_mini_hero.dart';
-import '../widgets/login_art.dart';
-
-Uint8List? qrBytes(String? dataUrl) {
-  if (dataUrl == null || dataUrl.isEmpty) return null;
-  final i = dataUrl.indexOf('base64,');
-  if (i < 0) return null;
-  try {
-    return base64Decode(dataUrl.substring(i + 7));
-  } catch (_) {
-    return null;
-  }
-}
+import '../widgets/auth_digit_row.dart';
+import '../widgets/auth_layout.dart';
 
 class OtpScreen extends StatefulWidget {
   const OtpScreen({super.key});
@@ -30,9 +15,7 @@ class OtpScreen extends StatefulWidget {
 
 class _OtpScreenState extends State<OtpScreen> {
   final code = TextEditingController();
-  final totp = TextEditingController();
-  final codeFocus = FocusNode();
-  final totpFocus = FocusNode();
+  final focus = FocusNode();
   Timer? timer;
   String _pushed = '';
 
@@ -58,14 +41,8 @@ class _OtpScreenState extends State<OtpScreen> {
   void dispose() {
     timer?.cancel();
     code.dispose();
-    totp.dispose();
-    codeFocus.dispose();
-    totpFocus.dispose();
+    focus.dispose();
     super.dispose();
-  }
-
-  void _verify() {
-    AppScope.of(context).submitOtp(code.text, totp: totp.text);
   }
 
   @override
@@ -76,75 +53,31 @@ class _OtpScreenState extends State<OtpScreen> {
         .difference(DateTime.now())
         .inSeconds
         .clamp(0, 99);
-    final wide = const LayoutService()
-        .resolve(MediaQuery.sizeOf(context).width)
-        .twoColumnForms;
-    final bytes = qrBytes(c.login.qrDataUrl);
     final form = Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton(onPressed: c.back, child: Text(c.t('back'))),
-          Text(c.t('mfa_t'), style: display(24, color: p.ink)),
+          Text(c.t('otp_t'), style: display(24, color: p.ink)),
           const SizedBox(height: 6),
-          Text(
-            c.login.enroll ? c.t('mfa_enroll') : c.t('mfa_enter'),
-            style: body(14, color: p.ink2),
-          ),
-          if (bytes != null) ...[
-            const SizedBox(height: 14),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: p.line),
-                ),
-                child: Image.memory(bytes, width: 180, height: 180),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              c.t('mfa_scan'),
-              textAlign: TextAlign.center,
-              style: body(12.5, color: p.ink2),
-            ),
-          ],
-          const SizedBox(height: 16),
-          Text(c.t('mfa_totp'), style: body(13, weight: FontWeight.w600)),
-          if (c.login.demoTotp != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '${c.t('otp_demo')}: ${c.login.demoTotp}',
-              style: body(13, color: p.accentText),
-            ),
-          ],
-          const SizedBox(height: 8),
-          _DigitRow(
-            controller: totp,
-            focus: totpFocus,
-            onChanged: () => setState(() {}),
-          ),
-          const SizedBox(height: 16),
           Text(
             c.login.emailMasked == null
                 ? c.t('otp_sent')
                 : '${c.t('otp_email')} ${c.login.emailMasked}',
-            style: body(13, weight: FontWeight.w600),
+            style: body(14, color: p.ink2),
           ),
           if (c.login.demoOtp != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               '${c.t('otp_demo')}: ${c.login.demoOtp}',
               style: body(13, color: p.accentText),
             ),
           ],
-          const SizedBox(height: 8),
-          _DigitRow(
+          const SizedBox(height: 18),
+          AuthDigitRow(
             controller: code,
-            focus: codeFocus,
+            focus: focus,
             onChanged: () => setState(() {}),
           ),
           if (c.login.otpErr.isNotEmpty) HelpText(c.login.otpErr, error: true),
@@ -153,7 +86,7 @@ class _OtpScreenState extends State<OtpScreen> {
             label: c.t('verify'),
             expand: true,
             busy: c.login.busy,
-            onPressed: _verify,
+            onPressed: () => c.submitOtp(code.text),
           ),
           const SizedBox(height: 12),
           Center(
@@ -170,107 +103,6 @@ class _OtpScreenState extends State<OtpScreen> {
         ],
       ),
     );
-    if (!wide) {
-      return ListView(
-        children: [
-          const AuthMiniHero(),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
-              decoration: cardBox(p),
-              child: form,
-            ),
-          ),
-        ],
-      );
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Expanded(flex: 3, child: LoginArt()),
-        Expanded(
-          flex: 2,
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(28),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(8, 22, 8, 8),
-                  decoration: cardBox(p),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 20),
-                        child: Wordmark(height: 36),
-                      ),
-                      form,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DigitRow extends StatelessWidget {
-  const _DigitRow({
-    required this.controller,
-    required this.focus,
-    required this.onChanged,
-  });
-  final TextEditingController controller;
-  final FocusNode focus;
-  final VoidCallback onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = ap(context);
-    return GestureDetector(
-      onTap: () => focus.requestFocus(),
-      child: Stack(
-        children: [
-          Row(
-            children: List.generate(6, (i) {
-              final ch = i < controller.text.length ? controller.text[i] : '';
-              final cur = i == controller.text.length;
-              return Expanded(
-                child: Container(
-                  height: 52,
-                  margin: EdgeInsets.only(right: i == 5 ? 0 : 8),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: cur ? p.primarySoft : p.canvas,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: cur ? p.primary : p.line,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Text(ch, style: display(22, color: p.ink)),
-                ),
-              );
-            }),
-          ),
-          Opacity(
-            opacity: 0,
-            child: TextField(
-              controller: controller,
-              focusNode: focus,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onChanged: (_) => onChanged(),
-            ),
-          ),
-        ],
-      ),
-    );
+    return AuthLayout(form: form);
   }
 }

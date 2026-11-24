@@ -77,7 +77,7 @@
     },
     {
       "name": "1. Auth",
-      "description": "MFA login: password then OTP. JWT is issued only after OTP.\nDemo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login/Resend/Forgot return `otp` for Postman.\nAfter Verify OTP, send `Authorization: Bearer {{authToken}}` (cookie `ap_token` also works).",
+      "description": "MFA login: password → authenticator PIN → email OTP. JWT is issued only after both.\nDemo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login/Resend return `otp` and `totp` for Postman.\nAfter Verify OTP, send `Authorization: Bearer {{authToken}}` (cookie `ap_token` also works).",
       "item": [
         {
           "name": "Login",
@@ -113,11 +113,38 @@
                   "const j = pm.response.json();",
                   "const cid = (j.mfa && j.mfa.challengeId) || j.challengeId;",
                   "if (cid) pm.collectionVariables.set('challengeId', String(cid));",
-                  "if (j.otp) pm.collectionVariables.set('otp', j.otp);"
+                  "if (j.otp) pm.collectionVariables.set('otp', j.otp);",
+                  "if (j.totp) pm.collectionVariables.set('totp', j.totp);"
                 ]
               }
             }
           ]
+        },
+        {
+          "name": "Verify TOTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/totp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "totp"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partnerId\": \"{{partnerId}}\",\n  \"totp\": \"{{totp}}\",\n  \"challengeId\": \"{{challengeId}}\"\n}"
+            }
+          }
         },
         {
           "name": "Verify OTP",
@@ -141,7 +168,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"partnerId\": \"{{partnerId}}\",\n  \"otp\": \"{{otp}}\",\n  \"totp\": \"{{totp}}\",\n  \"challengeId\": \"{{challengeId}}\"\n}"
+              "raw": "{\n  \"partnerId\": \"{{partnerId}}\",\n  \"otp\": \"{{otp}}\",\n  \"challengeId\": \"{{challengeId}}\"\n}"
             }
           },
           "event": [

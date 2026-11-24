@@ -23,7 +23,7 @@ const modules = [
   {
     name: '1. Auth',
     description:
-      'MFA login: password then OTP. JWT is issued only after OTP.\nDemo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login/Resend/Forgot return `otp` for Postman.\nAfter Verify OTP, send `Authorization: Bearer {{authToken}}` (cookie `ap_token` also works).',
+      'MFA login: password → authenticator PIN → email OTP. JWT is issued only after both.\nDemo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login/Resend return `otp` and `totp` for Postman.\nAfter Verify OTP, send `Authorization: Bearer {{authToken}}` (cookie `ap_token` also works).',
     item: [
       {
         name: 'Login',
@@ -36,7 +36,19 @@ const modules = [
           "const cid = (j.mfa && j.mfa.challengeId) || j.challengeId;",
           "if (cid) pm.collectionVariables.set('challengeId', String(cid));",
           "if (j.otp) pm.collectionVariables.set('otp', j.otp);",
+          "if (j.totp) pm.collectionVariables.set('totp', j.totp);",
         ],
+      },
+      {
+        name: 'Verify TOTP',
+        method: 'POST',
+        path: '/auth/totp',
+        auth: false,
+        body: {
+          partnerId: '{{partnerId}}',
+          totp: '{{totp}}',
+          challengeId: '{{challengeId}}',
+        },
       },
       {
         name: 'Verify OTP',
@@ -46,7 +58,6 @@ const modules = [
         body: {
           partnerId: '{{partnerId}}',
           otp: '{{otp}}',
-          totp: '{{totp}}',
           challengeId: '{{challengeId}}',
         },
         test: [

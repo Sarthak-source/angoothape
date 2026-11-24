@@ -17,12 +17,23 @@ class AuthApi {
   Future<Map<String, dynamic>> verifyOtp({
     required String partnerId,
     required String otp,
-    required String totp,
     String? challengeId,
   }) {
     return _client.post('/auth/otp', {
       'partnerId': partnerId,
       'otp': otp,
+      if (challengeId != null && challengeId.isNotEmpty)
+        'challengeId': challengeId,
+    });
+  }
+
+  Future<Map<String, dynamic>> verifyTotp({
+    required String partnerId,
+    required String totp,
+    String? challengeId,
+  }) {
+    return _client.post('/auth/totp', {
+      'partnerId': partnerId,
       'totp': totp,
       if (challengeId != null && challengeId.isNotEmpty)
         'challengeId': challengeId,

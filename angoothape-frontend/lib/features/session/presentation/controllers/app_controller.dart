@@ -155,8 +155,10 @@ class AppController extends ChangeNotifier
         return layout.nestUnderMore ? 'more' : 'dash';
       case 'login':
         return 'welcome';
-      case 'otp':
+      case 'mfa':
         return 'login';
+      case 'otp':
+        return 'mfa';
       case 'forgot':
         return 'login';
       case 'forgot-otp':
@@ -248,7 +250,7 @@ class AppController extends ChangeNotifier
       login.otpErr = '';
       _applyMfaChallenge(res);
       login.resendAt = DateTime.now().add(const Duration(seconds: 30));
-      go('otp');
+      go('mfa');
     } on ApiException catch (e) {
       login.busy = false;
       login.err = e.message;
@@ -263,8 +265,8 @@ class AppController extends ChangeNotifier
 
   void _applyMfaChallenge(Map<String, dynamic> res) {
     final mfa = Map<String, dynamic>.from(res['mfa'] as Map? ?? {});
-    login.demoOtp = res['otp'] as String?;
-    login.demoTotp = res['totp'] as String?;
+    login.demoOtp = res['otp'] as String? ?? login.demoOtp;
+    login.demoTotp = res['totp'] as String? ?? login.demoTotp;
     login.challengeId =
         mfa['challengeId'] as String? ?? res['challengeId'] as String?;
     login.qrDataUrl = mfa['qrDataUrl'] as String?;
@@ -272,9 +274,45 @@ class AppController extends ChangeNotifier
     login.enroll = mfa['enroll'] as bool? ?? login.qrDataUrl != null;
   }
 
-  Future<void> submitOtp(String code, {String totp = ''}) async {
-    login.otp = code;
+  Future<void> _finishAuth(Map<String, dynamic> res) async {
+    final token = res['token'] as String?;
+    if (token == null || token.isEmpty) {
+      throw ApiException(401, 'mfa_incomplete', 'Verification incomplete');
+    }
+    await api.persistToken(token);
+    await refreshSession();
+    login.busy = false;
+    authed = true;
+    go('dash');
+  }
+
+  Future<void> submitTotp(String totp) async {
     login.totp = totp;
+    login.otpErr = '';
+    login.busy = true;
+    notifyListeners();
+    try {
+      final res = await api.post('/auth/totp', {
+        'partnerId': login.id.trim().toUpperCase(),
+        'totp': totp,
+        if (login.challengeId != null) 'challengeId': login.challengeId,
+      });
+      if (res['token'] is String) {
+        await _finishAuth(res);
+        return;
+      }
+      login.busy = false;
+      _applyMfaChallenge(res);
+      go('otp');
+    } on ApiException catch (e) {
+      login.busy = false;
+      login.otpErr = e.message;
+      notifyListeners();
+    }
+  }
+
+  Future<void> submitOtp(String code) async {
+    login.otp = code;
     login.otpErr = '';
     login.busy = true;
     notifyListeners();
@@ -282,14 +320,9 @@ class AppController extends ChangeNotifier
       final res = await api.post('/auth/otp', {
         'partnerId': login.id.trim().toUpperCase(),
         'otp': code,
-        'totp': totp,
         if (login.challengeId != null) 'challengeId': login.challengeId,
       });
-      await api.persistToken(res['token'] as String);
-      await refreshSession();
-      login.busy = false;
-      authed = true;
-      go('dash');
+      await _finishAuth(res);
     } on ApiException catch (e) {
       login.busy = false;
       login.otpErr = e.message;

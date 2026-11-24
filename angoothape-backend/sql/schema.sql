@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS otp_challenges (
 
 ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS attempts INT NOT NULL DEFAULT 0;
 ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS pending_totp_secret TEXT;
+ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS totp_verified_at TIMESTAMPTZ;
+ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
 
 ALTER TABLE retailers ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE retailers ADD COLUMN IF NOT EXISTS totp_secret TEXT;

@@ -30,7 +30,8 @@ async function mfaBody({
     ok: true,
     mfaRequired: true,
     mfa: {
-      methods: ['email_otp', 'totp'],
+      methods: ['totp', 'email_otp'],
+      nextStep: enroll || totpSecret ? 'totp' : 'email_otp',
       challengeId,
       expiresAt: expiresAt.toISOString(),
       maxAttempts: config.mfaMaxAttempts,
@@ -80,6 +81,55 @@ async function createOtpChallenge(retailerId, pendingTotpSecret = null) {
   return { id: inserted.rows[0].id, code, expires };
 }
 
+async function loadChallenge(partnerId, challengeId) {
+  const { rows } = await query(
+    challengeId
+      ? `SELECT c.id, c.code_hash, c.expires_at, c.attempts, c.pending_totp_secret,
+                c.totp_verified_at, c.email_verified_at,
+                r.id AS retailer_id, r.partner_id, r.totp_secret, r.totp_enabled, r.email
+           FROM otp_challenges c
+           JOIN retailers r ON r.id = c.retailer_id
+          WHERE c.id = $1 AND r.partner_id = $2 AND c.consumed_at IS NULL`
+      : `SELECT c.id, c.code_hash, c.expires_at, c.attempts, c.pending_totp_secret,
+                c.totp_verified_at, c.email_verified_at,
+                r.id AS retailer_id, r.partner_id, r.totp_secret, r.totp_enabled, r.email
+           FROM otp_challenges c
+           JOIN retailers r ON r.id = c.retailer_id
+          WHERE r.partner_id = $1 AND c.consumed_at IS NULL
+          ORDER BY c.created_at DESC
+          LIMIT 1`,
+    challengeId ? [challengeId, partnerId] : [partnerId],
+  );
+  const row = rows[0];
+  if (!row || new Date(row.expires_at) < new Date()) {
+    throw fail(401, 'invalid_otp', 'Code expired. Request a new one.');
+  }
+  if (row.attempts >= config.mfaMaxAttempts) {
+    throw fail(
+      429,
+      'mfa_locked',
+      'Too many incorrect codes. Request a new one.',
+    );
+  }
+  return row;
+}
+
+async function finishIfReady(res, row) {
+  if (!row.totp_verified_at || !row.email_verified_at) {
+    return null;
+  }
+  if (row.pending_totp_secret) {
+    await query(
+      `UPDATE retailers SET totp_secret = $2, totp_enabled = true WHERE id = $1`,
+      [row.retailer_id, row.pending_totp_secret],
+    );
+  }
+  await query('UPDATE otp_challenges SET consumed_at = now() WHERE id = $1', [
+    row.id,
+  ]);
+  return issueSession(res, { id: row.retailer_id, partner_id: row.partner_id });
+}
+
 async function bumpFail(row) {
   const next = row.attempts + 1;
   await query('UPDATE otp_challenges SET attempts = $2 WHERE id = $1', [
@@ -120,76 +170,80 @@ export async function login(req, res) {
   const pendingTotp = enroll ? newTotpSecret() : null;
   const challenge = await createOtpChallenge(row.id, pendingTotp);
   await sendOtpEmail({ to: row.email, code: challenge.code, purpose: 'login' });
-  res.json(
-    await mfaBody({
-      challengeId: challenge.id,
-      expiresAt: challenge.expires,
-      otp: challenge.code,
-      email: row.email,
-      enroll,
-      totpSecret: pendingTotp || row.totp_secret,
-      partnerId: row.partner_id,
-    }),
+  const body = await mfaBody({
+    challengeId: challenge.id,
+    expiresAt: challenge.expires,
+    otp: challenge.code,
+    email: row.email,
+    enroll,
+    totpSecret: pendingTotp || row.totp_secret,
+    partnerId: row.partner_id,
+  });
+  body.mfa.nextStep = 'totp';
+  res.json(body);
+}
+
+export async function verifyTotp(req, res) {
+  const partnerId = partnerIdOf(req);
+  const totp = String(req.body?.totp || req.body?.mfaToken || '').trim();
+  const challengeId = String(req.body?.challengeId || '').trim();
+  if (!/^\d{6}$/.test(totp)) {
+    throw fail(400, 'invalid_totp', 'Enter the 6-digit authenticator PIN');
+  }
+  const row = await loadChallenge(partnerId, challengeId);
+  const secret = row.pending_totp_secret || row.totp_secret;
+  if (!totpOk(totp, secret)) await bumpFail(row);
+  const updated = await query(
+    `UPDATE otp_challenges SET totp_verified_at = now() WHERE id = $1
+     RETURNING totp_verified_at, email_verified_at, pending_totp_secret`,
+    [row.id],
   );
+  Object.assign(row, updated.rows[0]);
+  const done = await finishIfReady(res, row);
+  if (done) {
+    res.json(done);
+    return;
+  }
+  const body = await mfaBody({
+    challengeId: row.id,
+    expiresAt: new Date(row.expires_at),
+    email: row.email,
+    enroll: false,
+    totpSecret: null,
+    partnerId: row.partner_id,
+  });
+  body.mfa.nextStep = 'email_otp';
+  body.mfa.enroll = false;
+  delete body.mfa.qrDataUrl;
+  delete body.mfa.otpauthUrl;
+  delete body.totp;
+  res.json(body);
 }
 
 export async function verifyOtp(req, res) {
   const partnerId = partnerIdOf(req);
   const code = String(req.body?.otp || req.body?.code || '').trim();
-  const totp = String(req.body?.totp || req.body?.mfaToken || '').trim();
   const challengeId = String(req.body?.challengeId || '').trim();
   if (!/^\d{6}$/.test(code)) {
     throw fail(400, 'invalid_otp', 'Enter the 6-digit email code');
   }
-  if (!/^\d{6}$/.test(totp)) {
-    throw fail(400, 'invalid_totp', 'Enter the 6-digit authenticator PIN');
-  }
-  const { rows } = await query(
-    challengeId
-      ? `SELECT c.id, c.code_hash, c.expires_at, c.attempts, c.pending_totp_secret,
-                r.id AS retailer_id, r.partner_id, r.totp_secret, r.totp_enabled
-           FROM otp_challenges c
-           JOIN retailers r ON r.id = c.retailer_id
-          WHERE c.id = $1 AND r.partner_id = $2 AND c.consumed_at IS NULL`
-      : `SELECT c.id, c.code_hash, c.expires_at, c.attempts, c.pending_totp_secret,
-                r.id AS retailer_id, r.partner_id, r.totp_secret, r.totp_enabled
-           FROM otp_challenges c
-           JOIN retailers r ON r.id = c.retailer_id
-          WHERE r.partner_id = $1 AND c.consumed_at IS NULL
-          ORDER BY c.created_at DESC
-          LIMIT 1`,
-    challengeId ? [challengeId, partnerId] : [partnerId],
-  );
-  const row = rows[0];
-  if (!row || new Date(row.expires_at) < new Date()) {
-    throw fail(401, 'invalid_otp', 'Code expired. Request a new one.');
-  }
-  if (row.attempts >= config.mfaMaxAttempts) {
-    throw fail(
-      429,
-      'mfa_locked',
-      'Too many incorrect codes. Request a new one.',
-    );
+  const row = await loadChallenge(partnerId, challengeId);
+  if (!row.totp_verified_at) {
+    throw fail(401, 'totp_required', 'Complete authenticator verification first');
   }
   const emailOk = await argon2.verify(row.code_hash, code).catch(() => false);
   if (!emailOk) await bumpFail(row);
-
-  const secret = row.pending_totp_secret || row.totp_secret;
-  if (!totpOk(totp, secret)) await bumpFail(row);
-
-  if (row.pending_totp_secret) {
-    await query(
-      `UPDATE retailers SET totp_secret = $2, totp_enabled = true WHERE id = $1`,
-      [row.retailer_id, row.pending_totp_secret],
-    );
-  }
-
-  await query('UPDATE otp_challenges SET consumed_at = now() WHERE id = $1', [
-    row.id,
-  ]);
-  res.json(
-    issueSession(res, { id: row.retailer_id, partner_id: row.partner_id }),
+  const updated = await query(
+    `UPDATE otp_challenges SET email_verified_at = now() WHERE id = $1
+     RETURNING totp_verified_at, email_verified_at, pending_totp_secret`,
+    [row.id],
   );
+  Object.assign(row, updated.rows[0]);
+  const done = await finishIfReady(res, row);
+  if (!done) {
+    throw fail(401, 'mfa_incomplete', 'Authenticator PIN is still required');
+  }
+  res.json(done);
 }
 
 export async function resendOtp(req, res) {

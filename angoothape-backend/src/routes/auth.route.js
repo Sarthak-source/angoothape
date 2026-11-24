@@ -7,6 +7,7 @@ import {
   logout,
   resendOtp,
   verifyOtp,
+  verifyTotp,
 } from '../controllers/auth.controller.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -21,6 +22,7 @@ const loginLimit = rateLimit({
 
 router.post('/login', loginLimit, asyncHandler(login));
 router.post('/otp', loginLimit, asyncHandler(verifyOtp));
+router.post('/totp', loginLimit, asyncHandler(verifyTotp));
 router.post('/resend', loginLimit, asyncHandler(resendOtp));
 router.post('/logout', logout);
 router.post('/forgot', loginLimit, asyncHandler(forgotPassword));
