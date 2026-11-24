@@ -97,44 +97,51 @@ class BankSheetState extends State<BankSheet> {
                   padding: const EdgeInsets.only(top: 14, bottom: 10),
                   child: Text(c.t('popular'), style: display(16, color: p.ink)),
                 ),
-                GridView.count(
-                  crossAxisCount: 4,
+                GridView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 0.82,
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                        mainAxisExtent: 80,
+                      ),
                   children: [
                     for (final b in pop)
-                      Material(
-                        color: p.card,
-                        borderRadius: BorderRadius.circular(20),
-                        child: InkWell(
+                      DecoratedBox(
+                        decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          onTap: () => c.pickBank(b.id),
-                          child: Container(
-                            constraints: const BoxConstraints(minHeight: 80),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: c.aeps.bank == b.id
-                                    ? p.primary
-                                    : Colors.transparent,
-                                width: 2,
-                              ),
-                              boxShadow: cardShadow(),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                BankMono(b, size: 30),
-                                const SizedBox(height: 5),
-                                Text(
-                                  b.short,
-                                  style: body(11.5, weight: FontWeight.w600),
-                                  textAlign: TextAlign.center,
+                          boxShadow: cardShadow(),
+                        ),
+                        child: Material(
+                          color: p.card,
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => c.pickBank(b.id),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: c.aeps.bank == b.id
+                                      ? p.primary
+                                      : Colors.transparent,
+                                  width: 2,
                                 ),
-                              ],
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  BankMono(b, size: 30),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    b.short,
+                                    style: body(11.5, weight: FontWeight.w600),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

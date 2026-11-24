@@ -23,7 +23,7 @@ const modules = [
   {
     name: '1. Auth',
     description:
-      'Partner login + OTP. Demo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login and Forgot return `otp` for Postman to capture.',
+      'MFA login: password then OTP. JWT is issued only after OTP.\nDemo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login/Resend/Forgot return `otp` for Postman.\nAfter Verify OTP, send `Authorization: Bearer {{authToken}}` (cookie `ap_token` also works).',
     item: [
       {
         name: 'Login',
@@ -33,7 +33,8 @@ const modules = [
         body: { partnerId: '{{partnerId}}', password: '{{password}}' },
         test: [
           'const j = pm.response.json();',
-          "if (j.challengeId) pm.collectionVariables.set('challengeId', String(j.challengeId));",
+          "const cid = (j.mfa && j.mfa.challengeId) || j.challengeId;",
+          "if (cid) pm.collectionVariables.set('challengeId', String(cid));",
           "if (j.otp) pm.collectionVariables.set('otp', j.otp);",
         ],
       },
@@ -42,7 +43,12 @@ const modules = [
         method: 'POST',
         path: '/auth/otp',
         auth: false,
-        body: { partnerId: '{{partnerId}}', otp: '{{otp}}' },
+        body: {
+          partnerId: '{{partnerId}}',
+          otp: '{{otp}}',
+          totp: '{{totp}}',
+          challengeId: '{{challengeId}}',
+        },
         test: [
           'const j = pm.response.json();',
           "if (j.token) pm.collectionVariables.set('authToken', j.token);",
@@ -56,6 +62,8 @@ const modules = [
         body: { partnerId: '{{partnerId}}' },
         test: [
           'const j = pm.response.json();',
+          "const cid = (j.mfa && j.mfa.challengeId) || j.challengeId;",
+          "if (cid) pm.collectionVariables.set('challengeId', String(cid));",
           "if (j.otp) pm.collectionVariables.set('otp', j.otp);",
         ],
       },
@@ -339,7 +347,7 @@ const collection = {
     name: 'angoothaPe — Backend API',
     _postman_id: 'angoothape-backend-api-v1',
     description:
-      'REST API for angoothaPe retailer backend.\n\n**Setup**\n1. Set `baseUrl` (default `http://localhost:8080`)\n2. Seed: `npm run seed` (demo `AP100245` / `Demo@123`)\n3. Run **Login** then **Verify OTP**. With `DEV_RETURN_OTP=1`, OTP and `authToken` are saved automatically.\n\n**Auth:** `Authorization: Bearer {{authToken}}` (cookie `ap_token` also works).',
+      'REST API for angoothaPe retailer backend.\n\n**Setup**\n1. Set `baseUrl` (default `http://localhost:8080`)\n2. Seed: `npm run seed` (demo `AP100245` / `Demo@123`)\n3. Run **Login** then **Verify OTP** (MFA). With `DEV_RETURN_OTP=1`, OTP and `authToken` are saved automatically.\n\n**Auth:** JWT via `Authorization: Bearer {{authToken}}` or cookie `ap_token`. Token is not issued until OTP succeeds.',
     schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
   },
   variable: [
@@ -347,6 +355,7 @@ const collection = {
     { key: 'partnerId', value: 'AP100245' },
     { key: 'password', value: 'Demo@123' },
     { key: 'otp', value: '' },
+    { key: 'totp', value: '' },
     { key: 'authToken', value: '' },
     { key: 'challengeId', value: '' },
     { key: 'ekycId', value: '' },

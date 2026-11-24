@@ -7,7 +7,14 @@ class VerifyOtpUseCase {
   Future<Map<String, dynamic>> call({
     required String partnerId,
     required String otp,
+    required String totp,
+    String? challengeId,
   }) {
-    return _repo.verifyOtp(partnerId: partnerId, otp: otp);
+    return _repo.verifyOtp(
+      partnerId: partnerId,
+      otp: otp,
+      totp: totp,
+      challengeId: challengeId,
+    );
   }
 }

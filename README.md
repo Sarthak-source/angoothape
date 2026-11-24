@@ -12,7 +12,8 @@ angoothape/
 | --- | --- |
 | Partner ID | `AP100245` |
 | Password | `Demo@123` |
-| OTP | shown on the OTP screen when `DEV_RETURN_OTP=1` |
+| Email OTP | shown on the MFA screen when `DEV_RETURN_OTP=1` (also emailed / logged by the API) |
+| Authenticator | scan the QR on first login, then enter the 6-digit PIN |
 
 ## Backend
 

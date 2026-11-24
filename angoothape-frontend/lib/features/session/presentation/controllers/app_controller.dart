@@ -244,8 +244,9 @@ class AppController extends ChangeNotifier
       });
       login.busy = false;
       login.otp = '';
+      login.totp = '';
       login.otpErr = '';
-      login.demoOtp = res['otp'] as String?;
+      _applyMfaChallenge(res);
       login.resendAt = DateTime.now().add(const Duration(seconds: 30));
       go('otp');
     } on ApiException catch (e) {
@@ -260,8 +261,20 @@ class AppController extends ChangeNotifier
     notifyListeners();
   }
 
-  Future<void> submitOtp(String code) async {
+  void _applyMfaChallenge(Map<String, dynamic> res) {
+    final mfa = Map<String, dynamic>.from(res['mfa'] as Map? ?? {});
+    login.demoOtp = res['otp'] as String?;
+    login.demoTotp = res['totp'] as String?;
+    login.challengeId =
+        mfa['challengeId'] as String? ?? res['challengeId'] as String?;
+    login.qrDataUrl = mfa['qrDataUrl'] as String?;
+    login.emailMasked = mfa['emailMasked'] as String?;
+    login.enroll = mfa['enroll'] as bool? ?? login.qrDataUrl != null;
+  }
+
+  Future<void> submitOtp(String code, {String totp = ''}) async {
     login.otp = code;
+    login.totp = totp;
     login.otpErr = '';
     login.busy = true;
     notifyListeners();
@@ -269,6 +282,8 @@ class AppController extends ChangeNotifier
       final res = await api.post('/auth/otp', {
         'partnerId': login.id.trim().toUpperCase(),
         'otp': code,
+        'totp': totp,
+        if (login.challengeId != null) 'challengeId': login.challengeId,
       });
       await api.persistToken(res['token'] as String);
       await refreshSession();
@@ -288,8 +303,8 @@ class AppController extends ChangeNotifier
       final res = await api.post('/auth/resend', {
         'partnerId': login.id.trim().toUpperCase(),
       });
-      login.demoOtp = res['otp'] as String?;
-      toast(both('New code sent', 'नया कोड भेजा गया'));
+      _applyMfaChallenge(res);
+      toast(both('New code sent to email', 'ईमेल पर नया कोड भेजा गया'));
     } on ApiException catch (e) {
       toast(e.message);
     }
@@ -333,6 +348,12 @@ class AppController extends ChangeNotifier
       ..otp = ''
       ..otpErr = ''
       ..demoOtp = null
+      ..demoTotp = null
+      ..challengeId = null
+      ..qrDataUrl = null
+      ..emailMasked = null
+      ..enroll = false
+      ..totp = ''
       ..busy = false;
     aeps = AepsDraft();
     data = emptyAppData();

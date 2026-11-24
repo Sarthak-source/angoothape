@@ -21,9 +21,17 @@ CREATE TABLE IF NOT EXISTS otp_challenges (
   retailer_id  UUID NOT NULL REFERENCES retailers(id) ON DELETE CASCADE,
   code_hash    TEXT NOT NULL,
   expires_at   TIMESTAMPTZ NOT NULL,
+  attempts     INT NOT NULL DEFAULT 0,
   consumed_at  TIMESTAMPTZ,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS attempts INT NOT NULL DEFAULT 0;
+ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS pending_totp_secret TEXT;
+
+ALTER TABLE retailers ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE retailers ADD COLUMN IF NOT EXISTS totp_secret TEXT;
+ALTER TABLE retailers ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT false;
 
 CREATE INDEX IF NOT EXISTS otp_challenges_retailer_idx
   ON otp_challenges (retailer_id, created_at DESC);

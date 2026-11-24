@@ -138,7 +138,9 @@ export async function seedDemoRetailer(rid) {
     ],
   );
   await query(
-    `UPDATE retailers SET mobile = '9876543521', lang = 'en', dark = false, text_scale = 1, device_state = 'ready'
+    `UPDATE retailers SET mobile = '9876543521', email = 'ravi.sharma@angoothape.test',
+            lang = 'en', dark = false, text_scale = 1, device_state = 'ready',
+            totp_secret = NULL, totp_enabled = false
       WHERE id = $1`,
     [rid],
   );

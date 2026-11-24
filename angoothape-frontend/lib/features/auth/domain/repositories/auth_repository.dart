@@ -7,6 +7,8 @@ abstract class AuthRepository {
   Future<Map<String, dynamic>> verifyOtp({
     required String partnerId,
     required String otp,
+    required String totp,
+    String? challengeId,
   });
 
   Future<Map<String, dynamic>> resendOtp({required String partnerId});

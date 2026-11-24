@@ -17,8 +17,15 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Map<String, dynamic>> verifyOtp({
     required String partnerId,
     required String otp,
+    required String totp,
+    String? challengeId,
   }) {
-    return _api.verifyOtp(partnerId: partnerId, otp: otp);
+    return _api.verifyOtp(
+      partnerId: partnerId,
+      otp: otp,
+      totp: totp,
+      challengeId: challengeId,
+    );
   }
 
   @override

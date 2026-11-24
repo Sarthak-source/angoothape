@@ -19,9 +19,15 @@ export const config = {
   jwtSecret: required('JWT_SECRET', 'dev-only-change-me'),
   jwtExpires: process.env.JWT_EXPIRES || '12h',
   cookieName: process.env.COOKIE_NAME || 'ap_token',
+  mfaMaxAttempts: Number(process.env.MFA_MAX_ATTEMPTS || 5),
   corsOrigins: (process.env.CORS_ORIGIN || 'http://localhost:8080')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
   devReturnOtp: process.env.DEV_RETURN_OTP === '1',
+  smtpHost: process.env.SMTP_HOST || '',
+  smtpPort: Number(process.env.SMTP_PORT || 587),
+  smtpUser: process.env.SMTP_USER || '',
+  smtpPass: process.env.SMTP_PASS || '',
+  mailFrom: process.env.MAIL_FROM || 'angoothaPe <noreply@angoothape.local>',
 };
