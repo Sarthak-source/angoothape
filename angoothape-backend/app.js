@@ -5,10 +5,7 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import { config } from './src/config.js';
-import { authRouter } from './src/routes/auth.js';
-import { sessionRouter } from './src/routes/session.js';
-import { catalogRouter } from './src/routes/catalog.js';
-import { joinRouter } from './src/routes/join.js';
+import api from './src/routes/api.js';
 import { errorHandler, notFound } from './src/middleware/error.js';
 
 const app = express();
@@ -40,10 +37,7 @@ app.use(
 );
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
-app.use('/auth', authRouter);
-app.use('/catalog', catalogRouter);
-app.use('/join', joinRouter);
-app.use('/api', sessionRouter);
+app.use(api);
 app.use(notFound);
 app.use(errorHandler);
 

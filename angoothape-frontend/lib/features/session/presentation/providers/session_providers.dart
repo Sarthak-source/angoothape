@@ -4,11 +4,13 @@ import '../../../aeps/data/datasources/mock_biometric_port.dart';
 import '../../../aeps/data/repositories/biometric_repository_impl.dart';
 import '../../../aeps/domain/ports/biometric_port.dart';
 import '../../../aeps/domain/usecases/capture_fingerprint_usecase.dart';
-import '../../../../core/api/api_client.dart';
+import '../../../../core/api/api_providers.dart';
 import '../../../../core/responsive/layout_service.dart';
+import '../../../home/presentation/providers/home_providers.dart';
+import '../../../onboarding/presentation/providers/join_providers.dart';
 import '../controllers/app_controller.dart';
 
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+export '../../../../core/api/api_providers.dart';
 
 final layoutServiceProvider = Provider<LayoutService>(
   (ref) => const LayoutService(),
@@ -51,6 +53,8 @@ class Session extends Notifier<int> {
     controller = AppController(
       api: ref.watch(apiClientProvider),
       captureFingerprintUseCase: ref.watch(captureFingerprintUseCaseProvider),
+      joinRepository: ref.watch(joinRepositoryProvider),
+      homeRepository: ref.watch(homeRepositoryProvider),
     );
     controller.addListener(_onChange);
     ref.onDispose(() {

@@ -9,6 +9,7 @@
     "dev": "nodemon ./app.js",
     "migrate": "node ./src/migrate.js",
     "seed": "node ./src/seed.js",
+    "postman": "node ./scripts/generate-postman-collection.mjs",
     "test": "node --test tests/"
   },
   "license": "UNLICENSED",

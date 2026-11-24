@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../../../session/domain/entities/session_entities.dart';
+import '../../../../core/enums.dart';
 import '../../domain/ports/aeps_gateway.dart';
 
 class MockAepsGateway implements AepsGateway {

@@ -1,4 +1,4 @@
-import '../../../session/domain/entities/session_entities.dart';
+import '../../../../core/enums.dart';
 import '../ports/aeps_gateway.dart';
 
 class SubmitAepsUseCase {

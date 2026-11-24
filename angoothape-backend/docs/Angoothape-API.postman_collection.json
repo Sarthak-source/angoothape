@@ -1,0 +1,1050 @@
+{
+  "info": {
+    "name": "angoothaPe — Backend API",
+    "_postman_id": "angoothape-backend-api-v1",
+    "description": "REST API for angoothaPe retailer backend.\n\n**Setup**\n1. Set `baseUrl` (default `http://localhost:8080`)\n2. Seed: `npm run seed` (demo `AP100245` / `Demo@123`)\n3. Run **Login** then **Verify OTP**. With `DEV_RETURN_OTP=1`, OTP and `authToken` are saved automatically.\n\n**Auth:** `Authorization: Bearer {{authToken}}` (cookie `ap_token` also works).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "partnerId",
+      "value": "AP100245"
+    },
+    {
+      "key": "password",
+      "value": "Demo@123"
+    },
+    {
+      "key": "otp",
+      "value": ""
+    },
+    {
+      "key": "authToken",
+      "value": ""
+    },
+    {
+      "key": "challengeId",
+      "value": ""
+    },
+    {
+      "key": "ekycId",
+      "value": ""
+    },
+    {
+      "key": "applicationId",
+      "value": ""
+    },
+    {
+      "key": "txRef",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Health",
+      "description": "Process liveness. No auth.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Auth",
+      "description": "Partner login + OTP. Demo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login and Forgot return `otp` for Postman to capture.",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partnerId\": \"{{partnerId}}\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.challengeId) pm.collectionVariables.set('challengeId', String(j.challengeId));",
+                  "if (j.otp) pm.collectionVariables.set('otp', j.otp);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "otp"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partnerId\": \"{{partnerId}}\",\n  \"otp\": \"{{otp}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('authToken', j.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "resend"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partnerId\": \"{{partnerId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.otp) pm.collectionVariables.set('otp', j.otp);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forgot password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partnerId\": \"{{partnerId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.otp) pm.collectionVariables.set('otp', j.otp);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forgot confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot",
+                "confirm"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partnerId\": \"{{partnerId}}\",\n  \"otp\": \"{{otp}}\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Catalog",
+      "item": [
+        {
+          "name": "Get catalog",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/catalog",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalog"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Join / onboarding",
+      "item": [
+        {
+          "name": "Create eKYC",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/join/ekyc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "join",
+                "ekyc"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pan\": \"ABCDE1234F\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.ekyc?.id;",
+                  "if (id) pm.collectionVariables.set('ekycId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "join"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"retailer\",\n  \"ekycId\": \"{{ekycId}}\",\n  \"fields\": {\n    \"name\": \"Ravi Sharma\",\n    \"shop\": \"Sharma General Store\"\n  },\n  \"docs\": {}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.application?.id;",
+                  "if (id) pm.collectionVariables.set('applicationId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/join/{{applicationId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "join",
+                "{{applicationId}}",
+                "approve"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Me",
+      "item": [
+        {
+          "name": "Get me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ravi Sharma\",\n  \"shop\": \"Sharma General Store\",\n  \"city\": \"Aminabad, Lucknow, UP\",\n  \"mobile\": \"9876543521\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "preferences"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lang\": \"en\",\n  \"dark\": false,\n  \"scale\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": \"{{password}}\",\n  \"next\": \"{{password}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Demo reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/demo/reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "demo",
+                "reset"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Transactions",
+      "item": [
+        {
+          "name": "List transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions?q=&status=all&svc=all&range=30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": ""
+                },
+                {
+                  "key": "status",
+                  "value": "all"
+                },
+                {
+                  "key": "svc",
+                  "value": "all"
+                },
+                {
+                  "key": "range",
+                  "value": "30"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const first = Array.isArray(j.tx) ? j.tx[0] : null;",
+                  "if (first?.ref) pm.collectionVariables.set('txRef', first.ref);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get transaction",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions/{{txRef}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transactions",
+                "{{txRef}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check pending transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions/{{txRef}}/check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transactions",
+                "{{txRef}}",
+                "check"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolve\": \"success\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. AePS",
+      "item": [
+        {
+          "name": "Submit AePS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/aeps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "aeps"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"svc\": \"cw\",\n  \"bank\": \"sbi\",\n  \"amount\": 500,\n  \"aadhaar4\": \"1234\",\n  \"mobile4\": \"3521\",\n  \"outcome\": \"success\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const ref = j.tx?.ref;",
+                  "if (ref) pm.collectionVariables.set('txRef', ref);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Wallet",
+      "item": [
+        {
+          "name": "Create settlement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/settlements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "settlements"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000\n}"
+            }
+          }
+        },
+        {
+          "name": "Add bank account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"holder\": \"RAVI SHARMA\",\n  \"acct\": \"123456789012\",\n  \"acct2\": \"123456789012\",\n  \"ifsc\": \"SBIN0001234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Wallet top-up",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/topup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "wallet",
+                "topup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Tickets",
+      "item": [
+        {
+          "name": "Create ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"txn\",\n  \"message\": \"Need help with a transaction\",\n  \"ref\": \"{{txRef}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Device",
+      "item": [
+        {
+          "name": "Get device",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/device",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "device"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Test device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/device/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "device",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Patch device state",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/device",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "device"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"state\": \"paired\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Device request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/device/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "device",
+                "requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"replace\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Receipts & exports",
+      "item": [
+        {
+          "name": "Receipt action",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/receipts/{{txRef}}/actions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "receipts",
+                "{{txRef}}",
+                "actions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"share\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create export",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/exports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "exports"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"range\": \"30\",\n  \"format\": \"csv\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

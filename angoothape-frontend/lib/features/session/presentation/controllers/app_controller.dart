@@ -4,10 +4,15 @@ import 'package:flutter/material.dart';
 
 import '../../../aeps/domain/usecases/capture_fingerprint_usecase.dart';
 import '../../../../core/api/api_client.dart';
+import '../../../../core/enums.dart';
 import '../../../../core/api/session_mapper.dart';
 import '../../../../core/l10n/strings.dart';
 import '../../../../core/responsive/layout_service.dart';
 import '../../../../core/utils/format.dart';
+import '../../../home/domain/repositories/home_repository.dart';
+import '../../../home/presentation/controllers/home_controller.dart';
+import '../../../onboarding/domain/repositories/join_repository.dart';
+import '../../../onboarding/presentation/controllers/join_controller.dart';
 import '../../domain/entities/session_entities.dart';
 
 class ToastMsg {
@@ -16,35 +21,52 @@ class ToastMsg {
   final bool sim;
 }
 
-class AppController extends ChangeNotifier {
-  AppController({required this.api, required this.captureFingerprintUseCase}) {
+class AppController extends ChangeNotifier
+    with JoinController, HomeController {
+  AppController({
+    required this.api,
+    required this.captureFingerprintUseCase,
+    required this.joinRepository,
+    required this.homeRepository,
+  }) {
     unawaited(_boot());
   }
 
   final ApiClient api;
   final CaptureFingerprintUseCase captureFingerprintUseCase;
+  @override
+  final JoinRepository joinRepository;
+  @override
+  final HomeRepository homeRepository;
 
   String lang = 'en';
   bool authed = false;
   bool booting = true;
   bool dark = false;
   double scale = 1;
+  @override
   String route = 'welcome';
   Map<String, String> params = {};
   LayoutProfile layout = const LayoutService().resolve(400);
   bool inflight = false;
 
+  @override
   final scenario = Scenario();
+  @override
   AppData data = emptyAppData();
   AepsDraft aeps = AepsDraft();
   final login = LoginDraft();
+  @override
   JoinDraft join = JoinDraft();
+  @override
   final hist = HistFilter();
   String helpTab = 'faq';
   NewReq newReq = NewReq();
   String devTab = 'android';
   String devTest = 'idle';
+  @override
   SheetModel? sheet;
+  @override
   final Map<String, bool> checking = {};
   final _toasts = StreamController<ToastMsg>.broadcast();
   Stream<ToastMsg> get toasts => _toasts.stream;
@@ -71,7 +93,9 @@ class AppController extends ChangeNotifier {
 
   bool get hi => lang == 'hi';
   bool get isMobile => layout.isMobile;
+  @override
   String t(String key) => tr(lang, key);
+  @override
   String both(String en, String hindi) => hi ? hindi : en;
 
   /// Updates navigation parents when the viewport class changes.
@@ -82,6 +106,7 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   void toast(String msg, {bool sim = false}) {
     _toasts.add(ToastMsg(msg, sim));
   }
@@ -92,40 +117,18 @@ class AppController extends ChangeNotifier {
     super.dispose();
   }
 
+  @override
   void go(String next, {Map<String, String>? params}) {
     if (inflight && next != route) {
       toast(t('in_progress'));
       return;
     }
-    if (next == 'hist') {
-      hist.loading = true;
-      api
-          .get(
-            '/api/transactions',
-            query: {
-              'q': hist.q,
-              'status': hist.status,
-              'svc': hist.svc,
-              'range': hist.range,
-            },
-          )
-          .then((res) {
-            data.replaceTx([
-              for (final x in res['tx'] as List? ?? [])
-                txnFromJson(Map<String, dynamic>.from(x as Map)),
-            ]);
-            hist.loading = false;
-            if (route == 'hist') notifyListeners();
-          })
-          .catchError((_) {
-            hist.loading = false;
-            if (route == 'hist') notifyListeners();
-          });
-    }
+    if (next == 'hist') hist.loading = true;
     route = next;
     this.params = params ?? {};
     sheet = null;
     notifyListeners();
+    if (next == 'hist') unawaited(loadHistory());
   }
 
   void nav(String next) {
@@ -178,12 +181,7 @@ class AppController extends ChangeNotifier {
         (aeps.step == AepsStep.result || aeps.step == AepsStep.processing)) {
       return;
     }
-    if (route == 'join' && join.step > 0) {
-      join.step--;
-      join.tried = false;
-      notifyListeners();
-      return;
-    }
+    if (route == 'join' && joinStepBack()) return;
     final p = parentOf(route);
     if (p != null) go(p);
   }
@@ -313,7 +311,8 @@ class AppController extends ChangeNotifier {
     };
   }
 
-  void _applyWallet(Map<String, dynamic>? json) {
+  @override
+  void applyWallet(Map<String, dynamic>? json) {
     if (json == null) return;
     data.wallet.main = (json['main'] as num?)?.toDouble() ?? data.wallet.main;
     data.wallet.aeps = (json['aeps'] as num?)?.toDouble() ?? data.wallet.aeps;
@@ -368,123 +367,6 @@ class AppController extends ChangeNotifier {
     params = {};
     notifyListeners();
     toast(both('Demo reset', 'डेमो रीसेट हो गया'));
-  }
-
-  // ----- join -----
-
-  void startJoin() {
-    join = JoinDraft();
-    go('join');
-  }
-
-  void setRole(String role) {
-    join.role = role;
-    notifyListeners();
-  }
-
-  Future<void> joinNext(Map<String, String> fields) async {
-    join.f.addAll(fields);
-    join.tried = true;
-    var ok = true;
-    if (join.step == 1) {
-      final req = [
-        'name',
-        'mobile',
-        'biz',
-        'type',
-        'addr',
-        'pin',
-        'state',
-        if (join.role != 'retailer') 'area',
-      ];
-      ok =
-          req.every((k) => (join.f[k] ?? '').trim().isNotEmpty) &&
-          validMobile(join.f['mobile'] ?? '') &&
-          validPin(join.f['pin'] ?? '');
-    }
-    if (join.step == 2) {
-      final docs = [
-        'pancard',
-        'shop',
-        'cheque',
-        if (join.role != 'retailer') 'gstc',
-      ];
-      ok =
-          validPan(join.f['pan'] ?? '') &&
-          join.ekyc &&
-          join.agree &&
-          docs.every((k) => join.docs.containsKey(k));
-    }
-    if (!ok) {
-      notifyListeners();
-      return;
-    }
-    if (join.step == 2) {
-      join.busy = true;
-      notifyListeners();
-      try {
-        final res = await api.post('/join', {
-          'role': join.role,
-          'fields': join.f,
-          'docs': join.docs,
-          'ekycId': join.ekycId,
-        });
-        final app = Map<String, dynamic>.from(res['application'] as Map);
-        join.applicationId = app['id'] as String?;
-        join.busy = false;
-      } on ApiException catch (e) {
-        join.busy = false;
-        toast(e.message);
-        notifyListeners();
-        return;
-      }
-    }
-    join.step++;
-    join.tried = false;
-    notifyListeners();
-  }
-
-  void setAgree(bool v) {
-    join.agree = v;
-    notifyListeners();
-  }
-
-  Future<void> runEkyc([String pan = '']) async {
-    join.ekycBusy = true;
-    notifyListeners();
-    try {
-      final value = pan.trim().toUpperCase().isEmpty
-          ? (join.f['pan'] ?? '').trim().toUpperCase()
-          : pan.trim().toUpperCase();
-      join.f['pan'] = value;
-      final res = await api.post('/join/ekyc', {
-        'pan': value,
-      });
-      join.ekycId = (res['ekyc'] as Map?)?['id'] as String?;
-      join.ekyc = true;
-    } on ApiException catch (e) {
-      toast(e.message);
-    } finally {
-      join.ekycBusy = false;
-      notifyListeners();
-    }
-  }
-
-  void attachDoc(String key, String name) {
-    join.docs[key] = name;
-    notifyListeners();
-  }
-
-  Future<void> simulateApproval() async {
-    final id = join.applicationId;
-    if (id == null) return;
-    try {
-      await api.post('/join/$id/approve');
-      join.approved = true;
-      notifyListeners();
-    } on ApiException catch (e) {
-      toast(e.message);
-    }
   }
 
   // ----- aeps -----
@@ -691,7 +573,7 @@ class AppController extends ChangeNotifier {
       if (token != _seq) return;
       final x = txnFromJson(Map<String, dynamic>.from(res['tx'] as Map));
       data.prependTx(x);
-      _applyWallet(
+      applyWallet(
         res['wallet'] == null
             ? null
             : Map<String, dynamic>.from(res['wallet'] as Map),
@@ -730,45 +612,6 @@ class AppController extends ChangeNotifier {
     go('dash');
   }
 
-  Txn? txnByRef(String? ref) => ref == null ? null : data.txByRef[ref];
-
-  Future<void> checkStatus(String ref) async {
-    final x = txnByRef(ref);
-    if (x == null || checking[ref] == true) return;
-    checking[ref] = true;
-    notifyListeners();
-    try {
-      final res = await api.post('/api/transactions/$ref/check', {
-        'resolve': scenario.pendingResolve,
-      });
-      checking[ref] = false;
-      final next = txnFromJson(Map<String, dynamic>.from(res['tx'] as Map));
-      data.putTx(next);
-      _applyWallet(
-        res['wallet'] == null
-            ? null
-            : Map<String, dynamic>.from(res['wallet'] as Map),
-      );
-      if (res['stillPending'] == true || next.status == TxStatus.pending) {
-        toast(t('still_pending'));
-      } else if (next.status == TxStatus.failed) {
-        toast(t('fail_t'));
-      } else {
-        toast(t('ok_t'));
-      }
-      notifyListeners();
-    } on ApiException catch (e) {
-      checking[ref] = false;
-      toast(e.message);
-      notifyListeners();
-    }
-  }
-
-  void openReceipt(String ref) {
-    sheet = SheetModel(SheetKind.receipt)..ref = ref;
-    notifyListeners();
-  }
-
   void openSupport(String? ref) {
     final x = txnByRef(ref);
     var type = '';
@@ -780,132 +623,6 @@ class AppController extends ChangeNotifier {
       ..ref = ref ?? ''
       ..type = type;
     go('help-new');
-  }
-
-  // ----- history / wallet / banks / help -----
-
-  List<Txn> filteredTx() {
-    final q = hist.q.trim().toLowerCase();
-    final now = DateTime.now();
-    final days = int.tryParse(hist.range) ?? 30;
-    return data.tx.where((x) {
-      if (hist.status != 'all' && x.status.name != hist.status) return false;
-      if (hist.svc != 'all' && x.svc != hist.svc) return false;
-      if (days <= 1) {
-        if (!_sameDay(x.t, now)) return false;
-      } else if (now.difference(x.t) > Duration(days: days)) {
-        return false;
-      }
-      if (q.isEmpty) return true;
-      final b = bankById(x.bank);
-      return x.ref.toLowerCase().contains(q) ||
-          (b?.nameLower.contains(q) ?? false) ||
-          x.aadhaar4.contains(q) ||
-          x.mobile4.contains(q) ||
-          x.rrn.contains(q);
-    }).toList();
-  }
-
-  bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
-  void setHist({String? q, String? status, String? svc, String? range}) {
-    if (q != null) hist.q = q;
-    if (status != null) hist.status = status;
-    if (svc != null) hist.svc = svc;
-    if (range != null) hist.range = range;
-    notifyListeners();
-  }
-
-  void clearHist() {
-    hist
-      ..q = ''
-      ..status = 'all'
-      ..svc = 'all'
-      ..range = '30';
-    notifyListeners();
-  }
-
-  void openSettle() {
-    sheet = SheetModel(SheetKind.settle);
-    notifyListeners();
-  }
-
-  void setSettleAmt(String v) {
-    sheet?.amt = v;
-    notifyListeners();
-  }
-
-  Future<void> submitSettle() async {
-    final s = sheet;
-    if (s == null) return;
-    final n = int.tryParse(s.amt) ?? 0;
-    s.tried = true;
-    if (n < 100 || n > data.wallet.aeps) {
-      notifyListeners();
-      return;
-    }
-    try {
-      final res = await api.post('/api/settlements', {'amount': n});
-      data.settlements.insert(
-        0,
-        settlementFromJson(Map<String, dynamic>.from(res['settlement'] as Map)),
-      );
-      _applyWallet(
-        res['wallet'] == null
-            ? null
-            : Map<String, dynamic>.from(res['wallet'] as Map),
-      );
-      sheet = null;
-      notifyListeners();
-      toast(both('Settlement requested', 'सेटलमेंट अनुरोध भेजा गया'));
-    } on ApiException catch (e) {
-      toast(e.message);
-      notifyListeners();
-    }
-  }
-
-  void openAddBank() {
-    sheet = SheetModel(SheetKind.addBank);
-    notifyListeners();
-  }
-
-  Future<void> submitBank(Map<String, String> f) async {
-    final s = sheet;
-    if (s == null) return;
-    s.f = f;
-    s.tried = true;
-    final ok =
-        (f['holder'] ?? '').trim().isNotEmpty &&
-        validAccount(f['acct'] ?? '') &&
-        f['acct'] == f['acct2'] &&
-        validIfsc(f['ifsc'] ?? '');
-    if (!ok) {
-      notifyListeners();
-      return;
-    }
-    try {
-      final res = await api.post('/api/accounts', {
-        'holder': f['holder'],
-        'acct': f['acct'],
-        'acct2': f['acct2'],
-        'ifsc': f['ifsc']!.toUpperCase(),
-      });
-      data.addAccount(
-        accountFromJson(Map<String, dynamic>.from(res['account'] as Map)),
-      );
-      sheet = null;
-      notifyListeners();
-      toast(
-        both(
-          'Account added. Verification in progress.',
-          'खाता जोड़ा गया, सत्यापन जारी।',
-        ),
-      );
-    } on ApiException catch (e) {
-      toast(e.message);
-      notifyListeners();
-    }
   }
 
   void closeSheet() {
@@ -1050,11 +767,6 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void openTopup() {
-    sheet = SheetModel(SheetKind.topup);
-    notifyListeners();
-  }
-
   Future<void> submitProfile(Map<String, String> f) async {
     final s = sheet;
     if (s == null) return;
@@ -1099,31 +811,6 @@ class AppController extends ChangeNotifier {
       sheet = null;
       notifyListeners();
       toast(both('Password updated', 'पासवर्ड बदल गया'));
-    } on ApiException catch (e) {
-      toast(e.message);
-      notifyListeners();
-    }
-  }
-
-  Future<void> submitTopup() async {
-    final s = sheet;
-    if (s == null) return;
-    final n = int.tryParse(s.amt) ?? 0;
-    s.tried = true;
-    if (n < 100 || n > 50000) {
-      notifyListeners();
-      return;
-    }
-    try {
-      final res = await api.post('/api/wallet/topup', {'amount': n});
-      _applyWallet(
-        res['wallet'] == null
-            ? null
-            : Map<String, dynamic>.from(res['wallet'] as Map),
-      );
-      sheet = null;
-      notifyListeners();
-      toast(both('Top-up recorded', 'टॉप-अप दर्ज हो गया'));
     } on ApiException catch (e) {
       toast(e.message);
       notifyListeners();
@@ -1176,30 +863,6 @@ class AppController extends ChangeNotifier {
       login.busy = false;
       login.otpErr = e.message;
       notifyListeners();
-    }
-  }
-
-  Future<void> receiptAction(String kind, {String? ref}) async {
-    final id = ref ?? sheet?.ref ?? '';
-    if (id.isEmpty) return;
-    try {
-      await api.post('/api/receipts/$id/actions', {'kind': kind});
-      toast(t(switch (kind) {
-        'print' => 'sim_print',
-        'download' => 'sim_dl',
-        _ => 'sim_share',
-      }));
-    } on ApiException catch (e) {
-      toast(e.message);
-    }
-  }
-
-  Future<void> requestExport() async {
-    try {
-      await api.post('/api/exports', {'range': hist.range, 'format': 'csv'});
-      toast(both('Export requested', 'एक्सपोर्ट अनुरोध भेजा गया'));
-    } on ApiException catch (e) {
-      toast(e.message);
     }
   }
 

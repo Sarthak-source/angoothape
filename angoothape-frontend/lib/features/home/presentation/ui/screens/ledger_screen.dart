@@ -1,9 +1,10 @@
+import 'package:angoothape/features/aeps/presentation/ui/widgets/result_body.dart';
+import 'package:angoothape/features/home/presentation/ui/widgets/tx_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../aeps/presentation/ui/screens/aeps_screen.dart';
+import '../../../../../core/enums.dart';
 import '../../../../../core/responsive/layout_scope.dart';
-import '../../../../../core/responsive/layout_service.dart';
 import '../../../../../core/theme/palette.dart';
 import '../../../../../core/utils/format.dart';
 import '../../../../../core/widgets/app_widgets.dart';

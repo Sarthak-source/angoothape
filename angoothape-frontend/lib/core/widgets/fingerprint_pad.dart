@@ -2,10 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../enums.dart';
 import '../theme/ap_icons.dart';
 import '../theme/palette.dart';
-
-enum PadState { neutral, place, capturing, good, bad }
 
 /// Animated fingerprint scanner pad: breathing outline while waiting for a
 /// finger, progress ring and sweeping scan line while capturing, and a colour

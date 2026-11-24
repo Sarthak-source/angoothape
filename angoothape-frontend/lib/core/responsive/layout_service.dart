@@ -1,17 +1,9 @@
+import '../enums.dart';
+
 /// Shared layout rules for phone, tablet, and desktop web.
 ///
 /// Breakpoints match the prototype:
 /// mobile < 700, tablet 700–1023, desktop ≥ 1024.
-enum ViewportClass { mobile, tablet, desktop }
-
-enum BankPickerPresentation { sheet, dialog }
-
-enum HistoryPresentation { dayCards, table }
-
-enum ReceiptPresentation { shareAndPrint, downloadAndPrint }
-
-enum SummaryPlacement { fingerprintStage, liveSidePanel }
-
 class LayoutProfile {
   const LayoutProfile({required this.width, required this.viewport});
 

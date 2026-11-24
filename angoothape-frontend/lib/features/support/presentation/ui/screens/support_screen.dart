@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/enums.dart';
 import '../../../../../core/theme/palette.dart';
 import '../../../../../core/utils/format.dart';
 import '../../../../../core/widgets/app_widgets.dart';
@@ -628,7 +629,7 @@ class TicketScreen extends StatelessWidget {
                 ),
                 if (k.ref != null)
                   TextButton(
-                    onPressed: () => c.go('txn', params: {'ref': k!.ref!}),
+                    onPressed: () => c.go('txn', params: {'ref': k.ref!}),
                     child: Text(k.ref!),
                   ),
                 Text(fmtDt(k.t, c.lang), style: body(12, color: p.ink2)),

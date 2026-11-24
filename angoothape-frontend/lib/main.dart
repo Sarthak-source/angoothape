@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/palette.dart';
 import 'core/widgets/app_widgets.dart';
-import 'features/auth/presentation/ui/screens/auth_screen.dart';
+import 'features/auth/presentation/ui/screens/auth_host.dart';
 import 'features/home/presentation/ui/screens/home_shell.dart';
 import 'features/onboarding/presentation/ui/screens/join_screen.dart';
 import 'features/session/presentation/providers/session_providers.dart';

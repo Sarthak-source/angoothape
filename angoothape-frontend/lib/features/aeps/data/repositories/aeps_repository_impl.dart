@@ -1,4 +1,4 @@
-import '../../../session/domain/entities/session_entities.dart';
+import '../../../../core/enums.dart';
 import '../../domain/ports/aeps_gateway.dart';
 import '../datasources/mock_aeps_gateway.dart';
 
