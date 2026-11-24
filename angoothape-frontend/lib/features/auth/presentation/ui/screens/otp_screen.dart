@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/palette.dart';
 import '../../../../../core/widgets/app_widgets.dart';
+import '../widgets/auth_back.dart';
 import '../widgets/auth_digit_row.dart';
 import '../widgets/auth_layout.dart';
 
@@ -58,7 +59,7 @@ class _OtpScreenState extends State<OtpScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextButton(onPressed: c.back, child: Text(c.t('back'))),
+          const AuthBack(),
           Text(c.t('otp_t'), style: display(24, color: p.ink)),
           const SizedBox(height: 6),
           Text(

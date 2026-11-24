@@ -5,6 +5,7 @@ import '../../../../../core/theme/palette.dart';
 import '../../../../../core/widgets/app_widgets.dart';
 import '../../../../../core/theme/ap_icons.dart';
 
+import '../widgets/auth_back.dart';
 import '../widgets/auth_layout.dart';
 
 class ForgotConfirmScreen extends StatefulWidget {
@@ -33,14 +34,7 @@ class _ForgotConfirmScreenState extends State<ForgotConfirmScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: c.back,
-                icon: const Icon(ApIcons.chevL),
-                label: Text(c.t('back')),
-              ),
-            ),
+            const AuthBack(),
             Text(c.t('otp_t'), style: display(24, color: p.ink)),
             if (c.login.demoOtp != null) ...[
               const SizedBox(height: 8),

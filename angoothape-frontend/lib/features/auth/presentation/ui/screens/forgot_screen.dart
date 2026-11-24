@@ -5,6 +5,7 @@ import '../../../../../core/theme/palette.dart';
 import '../../../../../core/widgets/app_widgets.dart';
 import '../../../../../core/theme/ap_icons.dart';
 
+import '../widgets/auth_back.dart';
 import '../widgets/auth_layout.dart';
 
 class ForgotScreen extends StatefulWidget {
@@ -38,23 +39,10 @@ class _ForgotScreenState extends State<ForgotScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: c.back,
-                icon: const Icon(ApIcons.chevL),
-                label: Text(c.t('back')),
-              ),
-            ),
-            Text(c.t('forgot'), style: display(24, color: p.ink)),
+            const AuthBack(),
+            Text(c.t('forgot_t'), style: display(24, color: p.ink)),
             const SizedBox(height: 8),
-            Text(
-              c.both(
-                'We will send a 6-digit code to the registered mobile.',
-                'रजिस्टर्ड मोबाइल पर 6 अंकों का कोड भेजेंगे।',
-              ),
-              style: body(14, color: p.ink2),
-            ),
+            Text(c.t('forgot_p'), style: body(14, color: p.ink2)),
             const SizedBox(height: 16),
             ApTextField(
               label: c.t('agent_id'),
