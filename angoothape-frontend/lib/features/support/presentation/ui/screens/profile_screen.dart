@@ -39,12 +39,18 @@ class ProfileScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(c.data.retailer.name, style: display(18, color: p.ink)),
+                      Text(
+                        c.data.retailer.name,
+                        style: display(18, color: p.ink),
+                      ),
                       Text(
                         '${c.data.retailer.shop} · ${c.data.retailer.id}',
                         style: body(12.5, color: p.ink2),
                       ),
-                      Text(c.data.retailer.city, style: body(12.5, color: p.ink2)),
+                      Text(
+                        c.data.retailer.city,
+                        style: body(12.5, color: p.ink2),
+                      ),
                     ],
                   ),
                 ),
@@ -167,7 +173,10 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              c.both('angoothaPe · live session data', 'angoothaPe · लाइव सेशन डेटा'),
+              c.both(
+                'angoothaPe · live session data',
+                'angoothaPe · लाइव सेशन डेटा',
+              ),
               style: body(12, color: p.ink3),
             ),
           ),
