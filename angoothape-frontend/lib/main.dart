@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/palette.dart';
 import 'core/widgets/app_widgets.dart';
+import 'core/di.dart';
 import 'features/auth/presentation/ui/screens/auth_host.dart';
 import 'features/home/presentation/ui/screens/home_shell.dart';
 import 'features/onboarding/presentation/ui/screens/join_screen.dart';
-import 'features/session/presentation/providers/session_providers.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,19 +18,20 @@ class AngoothaPeApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(sessionProvider);
-    final controller = ref.read(sessionProvider.notifier).controller;
+    final session = ref.watch(appProvider);
+    final controller = ref.read(appProvider.notifier);
     return AppScope(
+      session: session,
       controller: controller,
       child: MaterialApp(
         title: 'angoothaPe',
         debugShowCheckedModeBanner: false,
         theme: apTheme(ApPalette.light, Brightness.light),
         darkTheme: apTheme(ApPalette.dark, Brightness.dark),
-        themeMode: controller.dark ? ThemeMode.dark : ThemeMode.light,
+        themeMode: session.dark ? ThemeMode.dark : ThemeMode.light,
         builder: (context, child) {
           final scaler = MediaQuery.textScalerOf(context);
-          final next = scaler.scale(1) * controller.scale;
+          final next = scaler.scale(1) * session.scale;
           return MediaQuery(
             data: MediaQuery.of(context)
                 .copyWith(textScaler: TextScaler.linear(next.clamp(1, 1.6))),
@@ -38,11 +39,11 @@ class AngoothaPeApp extends ConsumerWidget {
           );
         },
         home: ToastListener(
-          child: controller.booting
+          child: session.booting
               ? const Scaffold(body: Center(child: CircularProgressIndicator()))
-              : controller.authed
+              : session.authed
               ? const HomeShell()
-              : controller.route == 'join'
+              : session.route == 'join'
               ? const JoinScreen()
               : const AuthHost(),
         ),

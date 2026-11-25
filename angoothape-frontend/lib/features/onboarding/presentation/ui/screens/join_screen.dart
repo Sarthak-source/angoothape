@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/di.dart';
 import '../../../../../core/theme/palette.dart';
 import '../../../../../core/widgets/app_widgets.dart';
 import '../../../../../core/theme/ap_icons.dart';
-import '../../controllers/join_controller.dart';
 
 import '../widgets/business_step.dart';
 import '../widgets/kyc_step.dart';
 import '../widgets/role_step.dart';
 import '../widgets/status_step.dart';
 
-class JoinScreen extends StatelessWidget {
+class JoinScreen extends ConsumerWidget {
   const JoinScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final c = AppScope.of(context);
-    final JoinController flow = c;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(appProvider);
+    final c = ref.read(appProvider.notifier);
     final p = ap(context);
-    final steps = c.hi
+    final steps = session.hi
         ? ['भूमिका', 'व्यवसाय', 'KYC', 'स्थिति']
         : ['Role', 'Business', 'KYC', 'Status'];
     return Scaffold(
@@ -42,11 +43,11 @@ class JoinScreen extends StatelessWidget {
               const SizedBox(height: 8),
               StepperBar(
                 labels: steps,
-                index: flow.join.step,
-                doneLast: flow.join.step == 3 && flow.join.approved,
+                index: session.join.step,
+                doneLast: session.join.step == 3 && session.join.approved,
               ),
               const SizedBox(height: 18),
-              switch (flow.join.step) {
+              switch (session.join.step) {
                 0 => const RoleStep(),
                 1 => const BusinessStep(),
                 2 => const KycStep(),

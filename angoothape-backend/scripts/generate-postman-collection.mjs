@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = join(__dirname, '../docs/Angoothape-API.postman_collection.json');
 
-/** @typedef {{ name: string, method: string, path: string, auth?: boolean, body?: object, query?: Record<string,string>, description?: string, test?: string[] }} Endpoint */
+/** @typedef {{ name: string, method: string, path: string, auth?: boolean, mfa?: boolean, body?: object, query?: Record<string,string>, description?: string, test?: string[] }} Endpoint */
 
 /** @type {{ name: string, description?: string, item: Endpoint[] }[]} */
 const modules = [
@@ -23,7 +23,7 @@ const modules = [
   {
     name: '1. Auth',
     description:
-      'MFA login: password → authenticator PIN → email OTP. JWT is issued only after both.\nDemo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login/Resend return `otp` and `totp` for Postman.\nAfter Verify OTP, send `Authorization: Bearer {{authToken}}` (cookie `ap_token` also works).',
+      'MFA login: password → authenticator PIN → email OTP. JWT + mfaToken are issued only after both.\nDemo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login/Resend return `otp` and `totp` for Postman.\nAfter Verify OTP: `Authorization: Bearer {{authToken}}` and `X-MFA-Token: {{mfaToken}}` on sensitive routes.',
     item: [
       {
         name: 'Login',
@@ -63,6 +63,7 @@ const modules = [
         test: [
           'const j = pm.response.json();',
           "if (j.token) pm.collectionVariables.set('authToken', j.token);",
+          "if (j.mfaToken) pm.collectionVariables.set('mfaToken', j.mfaToken);",
         ],
       },
       {
@@ -150,7 +151,7 @@ const modules = [
   {
     name: '4. Me',
     item: [
-      { name: 'Get me', method: 'GET', path: '/api/me' },
+      { name: 'Get me', method: 'GET', path: '/api/me', mfa: false },
       {
         name: 'Update me',
         method: 'PATCH',
@@ -166,6 +167,7 @@ const modules = [
         name: 'Update preferences',
         method: 'PATCH',
         path: '/api/me/preferences',
+        mfa: false,
         body: { lang: 'en', dark: false, scale: 1 },
       },
       {
@@ -184,6 +186,7 @@ const modules = [
         name: 'List transactions',
         method: 'GET',
         path: '/api/transactions',
+        mfa: false,
         query: { q: '', status: 'all', svc: 'all', range: '30' },
         test: [
           'const j = pm.response.json();',
@@ -191,7 +194,7 @@ const modules = [
           "if (first?.ref) pm.collectionVariables.set('txRef', first.ref);",
         ],
       },
-      { name: 'Get transaction', method: 'GET', path: '/api/transactions/{{txRef}}' },
+      { name: 'Get transaction', method: 'GET', path: '/api/transactions/{{txRef}}', mfa: false },
       {
         name: 'Check pending transaction',
         method: 'POST',
@@ -265,7 +268,7 @@ const modules = [
   {
     name: '9. Device',
     item: [
-      { name: 'Get device', method: 'GET', path: '/api/device' },
+      { name: 'Get device', method: 'GET', path: '/api/device', mfa: false },
       { name: 'Test device', method: 'POST', path: '/api/device/test' },
       {
         name: 'Patch device state',
@@ -306,6 +309,9 @@ function buildRequest(ep) {
   const headers = [{ key: 'Content-Type', value: 'application/json' }];
   if (needsAuth) {
     headers.push({ key: 'Authorization', value: 'Bearer {{authToken}}' });
+    if (ep.mfa !== false) {
+      headers.push({ key: 'X-MFA-Token', value: '{{mfaToken}}' });
+    }
   }
 
   const pathParts = ep.path.replace(/^\//, '').split('/');
@@ -358,7 +364,7 @@ const collection = {
     name: 'angoothaPe — Backend API',
     _postman_id: 'angoothape-backend-api-v1',
     description:
-      'REST API for angoothaPe retailer backend.\n\n**Setup**\n1. Set `baseUrl` (default `http://localhost:8080`)\n2. Seed: `npm run seed` (demo `AP100245` / `Demo@123`)\n3. Run **Login** then **Verify OTP** (MFA). With `DEV_RETURN_OTP=1`, OTP and `authToken` are saved automatically.\n\n**Auth:** JWT via `Authorization: Bearer {{authToken}}` or cookie `ap_token`. Token is not issued until OTP succeeds.',
+      'REST API for angoothaPe retailer backend.\n\n**Setup**\n1. Set `baseUrl` (default `http://localhost:8080`)\n2. Seed: `npm run seed` (demo `AP100245` / `Demo@123`)\n3. Run **Login** → **Verify TOTP** → **Verify OTP**. With `DEV_RETURN_OTP=1`, OTP, TOTP, `authToken`, and `mfaToken` are saved automatically.\n\n**Auth:** JWT via `Authorization: Bearer {{authToken}}` or cookie `ap_token`. Sensitive routes also need `X-MFA-Token: {{mfaToken}}`. Tokens are not issued until both MFA steps succeed.',
     schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
   },
   variable: [
@@ -368,6 +374,7 @@ const collection = {
     { key: 'otp', value: '' },
     { key: 'totp', value: '' },
     { key: 'authToken', value: '' },
+    { key: 'mfaToken', value: '' },
     { key: 'challengeId', value: '' },
     { key: 'ekycId', value: '' },
     { key: 'applicationId', value: '' },

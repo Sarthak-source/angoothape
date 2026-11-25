@@ -6,7 +6,7 @@ import '../../../../../core/responsive/layout_service.dart';
 import '../../../../../core/theme/palette.dart';
 import '../../../../../core/widgets/app_sheets.dart';
 import '../../../../../core/widgets/app_widgets.dart';
-import '../../../../session/presentation/providers/session_providers.dart';
+import '../../../../../core/di.dart';
 import '../../../../aeps/presentation/ui/screens/aeps_screen.dart';
 import '../../../../support/presentation/ui/screens/device_screen.dart';
 import '../../../../support/presentation/ui/screens/help_new_screen.dart';
@@ -26,12 +26,13 @@ import 'history_screen.dart';
 import 'txn_screen.dart';
 import 'wallet_screen.dart';
 
-class HomeShell extends StatelessWidget {
+class HomeShell extends ConsumerWidget {
   const HomeShell({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final c = AppScope.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(appProvider);
+    final c = ref.read(appProvider.notifier);
     return LayoutBuilder(
       builder: (context, constraints) {
         final profile = const LayoutService().resolve(constraints.maxWidth);
@@ -41,7 +42,7 @@ class HomeShell extends StatelessWidget {
           child: PopScope(
             canPop: false,
             onPopInvokedWithResult: (didPop, _) {
-              if (c.sheet != null) {
+              if (session.sheet != null) {
                 c.closeSheet();
                 return;
               }
@@ -67,7 +68,9 @@ class HomeShell extends StatelessWidget {
                                   ),
                                   child: Row(
                                     children: [
-                                      HomeSideNav(expanded: profile.sidebarExpanded),
+                                      HomeSideNav(
+                                        expanded: profile.sidebarExpanded,
+                                      ),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
@@ -125,11 +128,11 @@ class HomeSyncViewport extends ConsumerWidget {
   }
 }
 
-class HomeBody extends StatelessWidget {
+class HomeBody extends ConsumerWidget {
   const HomeBody({super.key});
   @override
-  Widget build(BuildContext context) {
-    final route = AppScope.of(context).route;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final route = ref.watch(appProvider.select((s) => s.route));
     return switch (route) {
       'aeps' => const AepsScreen(),
       'hist' => const HistoryScreen(),

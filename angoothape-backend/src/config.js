@@ -18,6 +18,7 @@ export const config = {
   ),
   jwtSecret: required('JWT_SECRET', 'dev-only-change-me'),
   jwtExpires: process.env.JWT_EXPIRES || '12h',
+  mfaTokenExpires: process.env.MFA_TOKEN_EXPIRES || process.env.JWT_EXPIRES || '12h',
   cookieName: process.env.COOKIE_NAME || 'ap_token',
   mfaMaxAttempts: Number(process.env.MFA_MAX_ATTEMPTS || 5),
   corsOrigins: (process.env.CORS_ORIGIN || 'http://localhost:8080')

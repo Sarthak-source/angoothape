@@ -2,7 +2,7 @@
   "info": {
     "name": "angoothaPe — Backend API",
     "_postman_id": "angoothape-backend-api-v1",
-    "description": "REST API for angoothaPe retailer backend.\n\n**Setup**\n1. Set `baseUrl` (default `http://localhost:8080`)\n2. Seed: `npm run seed` (demo `AP100245` / `Demo@123`)\n3. Run **Login** then **Verify OTP** (MFA). With `DEV_RETURN_OTP=1`, OTP and `authToken` are saved automatically.\n\n**Auth:** JWT via `Authorization: Bearer {{authToken}}` or cookie `ap_token`. Token is not issued until OTP succeeds.",
+    "description": "REST API for angoothaPe retailer backend.\n\n**Setup**\n1. Set `baseUrl` (default `http://localhost:8080`)\n2. Seed: `npm run seed` (demo `AP100245` / `Demo@123`)\n3. Run **Login** → **Verify TOTP** → **Verify OTP**. With `DEV_RETURN_OTP=1`, OTP, TOTP, `authToken`, and `mfaToken` are saved automatically.\n\n**Auth:** JWT via `Authorization: Bearer {{authToken}}` or cookie `ap_token`. Sensitive routes also need `X-MFA-Token: {{mfaToken}}`. Tokens are not issued until both MFA steps succeed.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -28,6 +28,10 @@
     },
     {
       "key": "authToken",
+      "value": ""
+    },
+    {
+      "key": "mfaToken",
       "value": ""
     },
     {
@@ -77,7 +81,7 @@
     },
     {
       "name": "1. Auth",
-      "description": "MFA login: password → authenticator PIN → email OTP. JWT is issued only after both.\nDemo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login/Resend return `otp` and `totp` for Postman.\nAfter Verify OTP, send `Authorization: Bearer {{authToken}}` (cookie `ap_token` also works).",
+      "description": "MFA login: password → authenticator PIN → email OTP. JWT + mfaToken are issued only after both.\nDemo seed: AP100245 / Demo@123.\nSet DEV_RETURN_OTP=1 so Login/Resend return `otp` and `totp` for Postman.\nAfter Verify OTP: `Authorization: Bearer {{authToken}}` and `X-MFA-Token: {{mfaToken}}` on sensitive routes.",
       "item": [
         {
           "name": "Login",
@@ -178,7 +182,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "const j = pm.response.json();",
-                  "if (j.token) pm.collectionVariables.set('authToken', j.token);"
+                  "if (j.token) pm.collectionVariables.set('authToken', j.token);",
+                  "if (j.mfaToken) pm.collectionVariables.set('mfaToken', j.mfaToken);"
                 ]
               }
             }
@@ -485,6 +490,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -546,6 +555,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -577,6 +590,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -693,6 +710,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -730,6 +751,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -778,6 +803,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -808,6 +837,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -838,6 +871,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -874,6 +911,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -935,6 +976,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -962,6 +1007,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -992,6 +1041,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -1028,6 +1081,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {
@@ -1060,6 +1117,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-MFA-Token",
+                "value": "{{mfaToken}}"
               }
             ],
             "url": {

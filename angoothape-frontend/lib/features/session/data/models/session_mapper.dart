@@ -21,8 +21,7 @@ void applyCatalogJson(Map<String, dynamic> json) {
       for (final e in map.entries)
         e.key: [
           for (final x in e.value as List? ?? [])
-            if (x is Map)
-              ((x[a] ?? '').toString(), (x[b] ?? '').toString()),
+            if (x is Map) ((x[a] ?? '').toString(), (x[b] ?? '').toString()),
         ],
     };
   }
@@ -31,9 +30,7 @@ void applyCatalogJson(Map<String, dynamic> json) {
     final map = Map<String, dynamic>.from(raw as Map? ?? {});
     return {
       for (final e in map.entries)
-        e.key: [
-          for (final x in e.value as List? ?? []) x.toString(),
-        ],
+        e.key: [for (final x in e.value as List? ?? []) x.toString()],
     };
   }
 
@@ -46,7 +43,9 @@ void applyCatalogJson(Map<String, dynamic> json) {
     nextIssues: langStrings(json['issues']),
     nextFuture: langPairs(json['futureServices'], a: 'id', b: 'label'),
     nextGuides: {
-      for (final e in Map<String, dynamic>.from(json['deviceGuides'] as Map? ?? {}).entries)
+      for (final e in Map<String, dynamic>.from(
+        json['deviceGuides'] as Map? ?? {},
+      ).entries)
         e.key: {
           for (final lang in Map<String, dynamic>.from(e.value as Map).entries)
             lang.key: [
@@ -55,20 +54,22 @@ void applyCatalogJson(Map<String, dynamic> json) {
         },
     },
     nextDeviceFaqs: {
-      for (final e in Map<String, dynamic>.from(json['deviceFaqs'] as Map? ?? {}).entries)
+      for (final e in Map<String, dynamic>.from(
+        json['deviceFaqs'] as Map? ?? {},
+      ).entries)
         e.key: [
           for (final x in e.value as List? ?? [])
             if (x is Map)
               (
                 (x['q'] ?? '').toString(),
-                [
-                  for (final a in x['a'] as List? ?? []) a.toString(),
-                ],
+                [for (final a in x['a'] as List? ?? []) a.toString()],
               ),
         ],
     },
     nextReasons: {
-      for (final e in Map<String, dynamic>.from(json['failReasons'] as Map? ?? {}).entries)
+      for (final e in Map<String, dynamic>.from(
+        json['failReasons'] as Map? ?? {},
+      ).entries)
         e.key: reasonFromJson(Map<String, dynamic>.from(e.value as Map)),
     },
   );

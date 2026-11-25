@@ -4,23 +4,16 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'api_exception.dart';
+
 const apiBase = String.fromEnvironment(
   'API_BASE',
   defaultValue: 'http://localhost:8080',
 );
 
-class ApiException implements Exception {
-  ApiException(this.status, this.code, this.message);
-  final int status;
-  final String code;
-  final String message;
-
-  @override
-  String toString() => message;
-}
-
-class ApiClient {
-  ApiClient({
+/// Shared HTTP + token storage only. Endpoint methods live in feature `*_api.dart` files.
+class HttpClient {
+  HttpClient({
     http.Client? httpClient,
     this.baseUrl = apiBase,
     FlutterSecureStorage? storage,
@@ -38,11 +31,16 @@ class ApiClient {
   final FlutterSecureStorage _storage;
   final String baseUrl;
   String? token;
+  String? mfaToken;
 
   static const _tokenKey = 'ap_token';
+  static const _mfaKey = 'ap_mfa_token';
+
+  bool get hasAccessToken => token != null && token!.isNotEmpty;
 
   Future<void> restore() async {
     token = await _storage.read(key: _tokenKey);
+    mfaToken = await _storage.read(key: _mfaKey);
     if (token != null && token!.isNotEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     final legacy = prefs.getString(_tokenKey);
@@ -52,14 +50,20 @@ class ApiClient {
     await prefs.remove(_tokenKey);
   }
 
-  Future<void> persistToken(String value) async {
+  Future<void> persistToken(String value, {String? mfa}) async {
     token = value;
     await _storage.write(key: _tokenKey, value: value);
+    if (mfa != null && mfa.isNotEmpty) {
+      mfaToken = mfa;
+      await _storage.write(key: _mfaKey, value: mfa);
+    }
   }
 
   Future<void> clearToken() async {
     token = null;
+    mfaToken = null;
     await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _mfaKey);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
   }
@@ -90,6 +94,7 @@ class ApiClient {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
       if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
+      if (mfaToken != null && mfaToken!.isNotEmpty) 'X-MFA-Token': mfaToken!,
     };
     http.Response res;
     try {

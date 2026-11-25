@@ -3,7 +3,12 @@ import crypto from 'node:crypto';
 import { query } from '../db.js';
 import { config } from '../config.js';
 import { fail } from '../middleware/error.js';
-import { signToken, setAuthCookie, clearAuthCookie } from '../middleware/auth.js';
+import {
+  signToken,
+  signMfaToken,
+  setAuthCookie,
+  clearAuthCookie,
+} from '../middleware/auth.js';
 import { maskEmail, sendOtpEmail } from '../mailer.js';
 import { newTotpSecret, totpNow, totpOk, totpQrDataUrl, totpUri } from '../totp.js';
 
@@ -51,11 +56,16 @@ async function mfaBody({
 
 function issueSession(res, retailer) {
   const token = signToken({ id: retailer.id, partner_id: retailer.partner_id });
+  const mfaToken = signMfaToken({
+    id: retailer.id,
+    partner_id: retailer.partner_id,
+  });
   setAuthCookie(res, token);
   return {
     ok: true,
     mfaRequired: false,
     token,
+    mfaToken,
     tokenType: 'Bearer',
     expiresIn: config.jwtExpires,
   };

@@ -1,8 +1,10 @@
-# angoothape frontend
+# angoothape-frontend
 
-Flutter retailer app. API lives in `../angoothape-backend`.
+Flutter retailer app (web and mobile).
+
+Full function list (screens, API clients, controllers): **[root README](../README.md#frontend)**.
 
 ```bash
 flutter pub get
-flutter run --dart-define=API_BASE=http://localhost:8080
+flutter run -d chrome --dart-define=API_BASE=http://localhost:8080
 ```

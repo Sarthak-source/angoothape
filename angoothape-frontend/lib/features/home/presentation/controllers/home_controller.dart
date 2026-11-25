@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
-
-import '../../../../core/api/api_client.dart';
+import '../../../../core/api/api_exception.dart';
 import '../../../../core/enums.dart';
 import '../../../../core/utils/format.dart';
 import '../../../aeps/domain/entities/bank.dart';
@@ -11,7 +9,7 @@ import '../../data/models/home_mappers.dart';
 import '../../domain/entities/txn.dart';
 import '../../domain/repositories/home_repository.dart';
 
-mixin HomeController on ChangeNotifier {
+mixin HomeController {
   HomeRepository get homeRepository;
   AppData get data;
   HistFilter get hist;
@@ -21,6 +19,7 @@ mixin HomeController on ChangeNotifier {
   Map<String, bool> get checking;
   String get route;
 
+  void emit();
   void go(String next, {Map<String, String>? params});
   void toast(String msg, {bool sim = false});
   String both(String en, String hindi);
@@ -43,7 +42,7 @@ mixin HomeController on ChangeNotifier {
     } catch (_) {
     } finally {
       hist.loading = false;
-      if (route == 'hist') notifyListeners();
+      if (route == 'hist') emit();
     }
   }
 
@@ -96,7 +95,7 @@ mixin HomeController on ChangeNotifier {
     if (status != null) hist.status = status;
     if (svc != null) hist.svc = svc;
     if (range != null) hist.range = range;
-    notifyListeners();
+    emit();
   }
 
   void clearHist() {
@@ -105,7 +104,7 @@ mixin HomeController on ChangeNotifier {
       ..status = 'all'
       ..svc = 'all'
       ..range = '30';
-    notifyListeners();
+    emit();
   }
 
   Txn? txnByRef(String? ref) => ref == null ? null : data.txByRef[ref];
@@ -114,7 +113,7 @@ mixin HomeController on ChangeNotifier {
     final x = txnByRef(ref);
     if (x == null || checking[ref] == true) return;
     checking[ref] = true;
-    notifyListeners();
+    emit();
     try {
       final res = await homeRepository.checkTransaction(
         ref,
@@ -135,27 +134,27 @@ mixin HomeController on ChangeNotifier {
       } else {
         toast(t('ok_t'));
       }
-      notifyListeners();
+      emit();
     } on ApiException catch (e) {
       checking[ref] = false;
       toast(e.message);
-      notifyListeners();
+      emit();
     }
   }
 
   void openReceipt(String ref) {
     sheet = SheetModel(SheetKind.receipt)..ref = ref;
-    notifyListeners();
+    emit();
   }
 
   void openSettle() {
     sheet = SheetModel(SheetKind.settle);
-    notifyListeners();
+    emit();
   }
 
   void setSettleAmt(String v) {
     sheet?.amt = v;
-    notifyListeners();
+    emit();
   }
 
   Future<void> submitSettle() async {
@@ -164,7 +163,7 @@ mixin HomeController on ChangeNotifier {
     final n = int.tryParse(s.amt) ?? 0;
     s.tried = true;
     if (n < 100 || n > data.wallet.aeps) {
-      notifyListeners();
+      emit();
       return;
     }
     try {
@@ -179,17 +178,17 @@ mixin HomeController on ChangeNotifier {
             : Map<String, dynamic>.from(res['wallet'] as Map),
       );
       sheet = null;
-      notifyListeners();
+      emit();
       toast(both('Settlement requested', 'सेटलमेंट अनुरोध भेजा गया'));
     } on ApiException catch (e) {
       toast(e.message);
-      notifyListeners();
+      emit();
     }
   }
 
   void openAddBank() {
     sheet = SheetModel(SheetKind.addBank);
-    notifyListeners();
+    emit();
   }
 
   Future<void> submitBank(Map<String, String> f) async {
@@ -203,7 +202,7 @@ mixin HomeController on ChangeNotifier {
         f['acct'] == f['acct2'] &&
         validIfsc(f['ifsc'] ?? '');
     if (!ok) {
-      notifyListeners();
+      emit();
       return;
     }
     try {
@@ -217,7 +216,7 @@ mixin HomeController on ChangeNotifier {
         accountFromJson(Map<String, dynamic>.from(res['account'] as Map)),
       );
       sheet = null;
-      notifyListeners();
+      emit();
       toast(
         both(
           'Account added. Verification in progress.',
@@ -226,13 +225,13 @@ mixin HomeController on ChangeNotifier {
       );
     } on ApiException catch (e) {
       toast(e.message);
-      notifyListeners();
+      emit();
     }
   }
 
   void openTopup() {
     sheet = SheetModel(SheetKind.topup);
-    notifyListeners();
+    emit();
   }
 
   Future<void> submitTopup() async {
@@ -241,7 +240,7 @@ mixin HomeController on ChangeNotifier {
     final n = int.tryParse(s.amt) ?? 0;
     s.tried = true;
     if (n < 100 || n > 50000) {
-      notifyListeners();
+      emit();
       return;
     }
     try {
@@ -252,11 +251,11 @@ mixin HomeController on ChangeNotifier {
             : Map<String, dynamic>.from(res['wallet'] as Map),
       );
       sheet = null;
-      notifyListeners();
+      emit();
       toast(both('Top-up recorded', 'टॉप-अप दर्ज हो गया'));
     } on ApiException catch (e) {
       toast(e.message);
-      notifyListeners();
+      emit();
     }
   }
 
@@ -265,11 +264,13 @@ mixin HomeController on ChangeNotifier {
     if (id.isEmpty) return;
     try {
       await homeRepository.receiptAction(id, kind: kind);
-      toast(t(switch (kind) {
-        'print' => 'sim_print',
-        'download' => 'sim_dl',
-        _ => 'sim_share',
-      }));
+      toast(
+        t(switch (kind) {
+          'print' => 'sim_print',
+          'download' => 'sim_dl',
+          _ => 'sim_share',
+        }),
+      );
     } on ApiException catch (e) {
       toast(e.message);
     }

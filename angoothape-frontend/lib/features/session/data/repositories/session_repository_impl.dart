@@ -6,6 +6,20 @@ class SessionRepositoryImpl implements SessionRepository {
   final SessionApi _api;
 
   @override
+  Future<void> restore() => _api.restore();
+
+  @override
+  bool get signedIn => _api.signedIn;
+
+  @override
+  Future<void> persistTokens(String token, {String? mfaToken}) {
+    return _api.persistTokens(token, mfaToken: mfaToken);
+  }
+
+  @override
+  Future<void> clearTokens() => _api.clearTokens();
+
+  @override
   Future<Map<String, dynamic>> catalog() => _api.catalog();
 
   @override

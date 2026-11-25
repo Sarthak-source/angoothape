@@ -1,19 +1,30 @@
-import '../../../../core/api/api_client.dart';
+import '../../../../core/api/api_endpoints.dart';
+import '../../../../core/api/http_client.dart';
 
 class SessionApi {
   SessionApi(this._client);
-  final ApiClient _client;
+  final HttpClient _client;
 
-  Future<Map<String, dynamic>> catalog() => _client.get('/catalog');
+  Future<void> restore() => _client.restore();
 
-  Future<Map<String, dynamic>> me() => _client.get('/api/me');
+  bool get signedIn => _client.hasAccessToken;
+
+  Future<void> persistTokens(String token, {String? mfaToken}) {
+    return _client.persistToken(token, mfa: mfaToken);
+  }
+
+  Future<void> clearTokens() => _client.clearToken();
+
+  Future<Map<String, dynamic>> catalog() => _client.get(ApiEndpoints.catalog);
+
+  Future<Map<String, dynamic>> me() => _client.get(ApiEndpoints.me);
 
   Future<void> savePreferences({
     required String lang,
     required bool dark,
     required double scale,
   }) async {
-    await _client.patch('/api/me/preferences', {
+    await _client.patch(ApiEndpoints.mePreferences, {
       'lang': lang,
       'dark': dark,
       'scale': scale,
@@ -21,6 +32,6 @@ class SessionApi {
   }
 
   Future<void> resetDemo() async {
-    await _client.post('/api/demo/reset');
+    await _client.post(ApiEndpoints.demoReset);
   }
 }

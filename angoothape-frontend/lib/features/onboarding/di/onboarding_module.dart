@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/api/api_providers.dart';
-import '../../data/datasources/join_api.dart';
-import '../../data/repositories/join_repository_impl.dart';
-import '../../domain/repositories/join_repository.dart';
-import '../../domain/usecases/start_ekyc_usecase.dart';
-import '../../domain/usecases/submit_join_usecase.dart';
+import '../../../core/di/core_module.dart';
+import '../data/datasources/join_api.dart';
+import '../data/repositories/join_repository_impl.dart';
+import '../domain/repositories/join_repository.dart';
+import '../domain/usecases/start_ekyc_usecase.dart';
+import '../domain/usecases/submit_join_usecase.dart';
 
 final joinApiProvider = Provider<JoinApi>(
-  (ref) => JoinApi(ref.watch(apiClientProvider)),
+  (ref) => JoinApi(ref.watch(httpClientProvider)),
 );
 
 final joinRepositoryProvider = Provider<JoinRepository>(

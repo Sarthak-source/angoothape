@@ -1,15 +1,14 @@
-import 'package:flutter/foundation.dart';
-
-import '../../../../core/api/api_client.dart';
+import '../../../../core/api/api_exception.dart';
 import '../../../../core/utils/format.dart';
 import '../../domain/entities/join_draft.dart';
 import '../../domain/repositories/join_repository.dart';
 
-mixin JoinController on ChangeNotifier {
+mixin JoinController {
   JoinRepository get joinRepository;
   JoinDraft get join;
   set join(JoinDraft value);
 
+  void emit();
   void go(String next, {Map<String, String>? params});
   void toast(String msg, {bool sim = false});
 
@@ -20,14 +19,14 @@ mixin JoinController on ChangeNotifier {
 
   void setRole(String role) {
     join.role = role;
-    notifyListeners();
+    emit();
   }
 
   bool joinStepBack() {
     if (join.step <= 0) return false;
     join.step--;
     join.tried = false;
-    notifyListeners();
+    emit();
     return true;
   }
 
@@ -65,12 +64,12 @@ mixin JoinController on ChangeNotifier {
           docs.every((k) => join.docs.containsKey(k));
     }
     if (!ok) {
-      notifyListeners();
+      emit();
       return;
     }
     if (join.step == 2) {
       join.busy = true;
-      notifyListeners();
+      emit();
       try {
         final res = await joinRepository.submit(
           role: join.role,
@@ -84,23 +83,23 @@ mixin JoinController on ChangeNotifier {
       } on ApiException catch (e) {
         join.busy = false;
         toast(e.message);
-        notifyListeners();
+        emit();
         return;
       }
     }
     join.step++;
     join.tried = false;
-    notifyListeners();
+    emit();
   }
 
   void setAgree(bool v) {
     join.agree = v;
-    notifyListeners();
+    emit();
   }
 
   Future<void> runEkyc([String pan = '']) async {
     join.ekycBusy = true;
-    notifyListeners();
+    emit();
     try {
       final value = pan.trim().toUpperCase().isEmpty
           ? (join.f['pan'] ?? '').trim().toUpperCase()
@@ -113,13 +112,13 @@ mixin JoinController on ChangeNotifier {
       toast(e.message);
     } finally {
       join.ekycBusy = false;
-      notifyListeners();
+      emit();
     }
   }
 
   void attachDoc(String key, String name) {
     join.docs[key] = name;
-    notifyListeners();
+    emit();
   }
 
   Future<void> simulateApproval() async {
@@ -128,7 +127,7 @@ mixin JoinController on ChangeNotifier {
     try {
       await joinRepository.approve(id);
       join.approved = true;
-      notifyListeners();
+      emit();
     } on ApiException catch (e) {
       toast(e.message);
     }

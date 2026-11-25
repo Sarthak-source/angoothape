@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../features/session/domain/entities/app_session.dart';
 import '../../features/session/domain/entities/session_entities.dart';
 import '../enums.dart';
 import '../../features/session/presentation/controllers/app_controller.dart';
@@ -12,18 +13,31 @@ import '../utils/format.dart';
 import 'top_snack_bar.dart';
 import '../theme/ap_icons.dart';
 
-class AppScope extends InheritedNotifier<AppController> {
+class AppScope extends InheritedWidget {
   const AppScope({
     super.key,
-    required AppController controller,
+    required this.session,
+    required this.controller,
     required super.child,
-  }) : super(notifier: controller);
+  });
+
+  final AppSession session;
+  final AppController controller;
 
   static AppController of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
     assert(scope != null, 'AppScope missing');
-    return scope!.notifier!;
+    return scope!.controller;
   }
+
+  static AppSession sessionOf(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
+    assert(scope != null, 'AppScope missing');
+    return scope!.session;
+  }
+
+  @override
+  bool updateShouldNotify(AppScope old) => !identical(session, old.session);
 }
 
 class LogoMark extends StatelessWidget {
