@@ -202,7 +202,17 @@ export async function verifyTotp(req, res) {
   }
   const row = await loadChallenge(partnerId, challengeId);
   const secret = row.pending_totp_secret || row.totp_secret;
-  if (!totpOk(totp, secret)) await bumpFail(row);
+  if (!totpOk(totp, secret)) {
+    const emailMatch = await argon2.verify(row.code_hash, totp).catch(() => false);
+    if (emailMatch) {
+      throw fail(
+        401,
+        'invalid_totp',
+        'That is the email OTP. Enter the authenticator PIN first.',
+      );
+    }
+    await bumpFail(row);
+  }
   const updated = await query(
     `UPDATE otp_challenges SET totp_verified_at = now() WHERE id = $1
      RETURNING totp_verified_at, email_verified_at, pending_totp_secret`,

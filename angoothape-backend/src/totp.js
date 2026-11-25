@@ -22,7 +22,11 @@ export async function totpQrDataUrl(account, secret) {
 export function totpOk(token, secret) {
   if (!secret || !/^\d{6}$/.test(String(token || ''))) return false;
   try {
-    const result = verifySync({ secret, token: String(token).trim() });
+    const result = verifySync({
+      secret,
+      token: String(token).trim(),
+      epochTolerance: 90,
+    });
     return Boolean(result?.valid);
   } catch {
     return false;

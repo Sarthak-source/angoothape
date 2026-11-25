@@ -29,6 +29,17 @@ class MfaScreen extends StatefulWidget {
 class _MfaScreenState extends State<MfaScreen> {
   final totp = TextEditingController();
   final totpFocus = FocusNode();
+  String? _demoFilled;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final demo = AppScope.of(context).login.demoTotp;
+    if (demo != null && demo != _demoFilled) {
+      _demoFilled = demo;
+      totp.text = demo;
+    }
+  }
 
   @override
   void dispose() {
